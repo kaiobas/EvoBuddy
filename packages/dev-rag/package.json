@@ -1,0 +1,41 @@
+{
+  "name": "@evobuddy/dev-rag",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "evobuddy-rag": "./dist/cli.js",
+    "evobuddy-rag-mcp": "./dist/mcp/server.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc && prisma generate",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "db:push": "prisma db push",
+    "db:generate": "prisma generate",
+    "setup": "node dist/setup.js",
+    "clean": "rm -rf dist data"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@prisma/client": "^6.6.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "prisma": "^6.6.0",
+    "typescript": "^5.8.0"
+  },
+  "prisma": {
+    "schema": "prisma/schema.prisma"
+  }
+}
