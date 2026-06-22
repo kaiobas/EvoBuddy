@@ -10,6 +10,41 @@ interface DashboardSummary {
   tasksPending: number;
 }
 
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 12) return "Bom dia";
+  if (h >= 12 && h < 18) return "Boa tarde";
+  return "Boa noite";
+}
+
+const DAILY_MESSAGES = [
+  "Pequenos passos consistentes constroem grandes resultados.",
+  "O que você faz hoje define quem você será amanhã.",
+  "Foco no que depende de você. O resto é ruído.",
+  "Uma tarefa por vez. Progresso real é simples assim.",
+  "Organize sua mente antes de organizar o dia.",
+  "Clareza primeiro, velocidade depois.",
+  "Cada anotação é um pensamento que não vai se perder.",
+  "Disciplina é liberdade disfarçada.",
+  "Menos perfeição, mais constância.",
+  "O dia começa bem quando você sabe o que importa.",
+  "Feito é melhor que perfeito.",
+  "Priorize. Não dá pra fazer tudo — e tudo bem.",
+  "Uma boa ideia anotada vale mais que dez esquecidas.",
+  "Seu futuro eu vai agradecer pelo que você faz agora.",
+  "Progresso, não perfeição.",
+  "Comece. O resto vem com o movimento.",
+  "O segredo da produtividade é saber o que não fazer.",
+  "Cada tarefa concluída é uma promessa cumprida.",
+  "Mente organizada, vida organizada.",
+  "Hoje é uma boa oportunidade para avançar um passo.",
+];
+
+function getDailyMessage() {
+  const day = Math.floor(Date.now() / 86_400_000);
+  return DAILY_MESSAGES[day % DAILY_MESSAGES.length];
+}
+
 const cards = (data: DashboardSummary) => [
   {
     to: "/notes",
@@ -73,10 +108,13 @@ export function DashboardPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
       <div className="mb-8">
+        <p className="mb-1 text-sm font-medium text-brand-500">
+          {getGreeting()}, {user?.email?.split("@")[0] ?? "bem-vindo"} 👋
+        </p>
         <h1 className="font-display text-2xl font-bold text-ink dark:text-neutral-100">
-          Olá, {user?.email?.split("@")[0] ?? "bem-vindo"} 👋
+          {getDailyMessage()}
         </h1>
-        <p className="mt-1 text-neutral-600 dark:text-neutral-400">
+        <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
           Aqui está o resumo do seu dia.
         </p>
       </div>
