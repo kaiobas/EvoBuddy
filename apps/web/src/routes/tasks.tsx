@@ -10,8 +10,9 @@ import {
   useSensors,
   type DragEndEvent,
   type DragStartEvent,
+  useDroppable,
+  useDraggable,
 } from "@dnd-kit/core";
-import { useDroppable, useDraggable } from "@dnd-kit/core";
 
 function SpringCheckbox({
   checked,
@@ -225,7 +226,7 @@ export function TasksPage() {
     setActiveTask(null);
     const { active, over } = event;
     if (!over) return;
-    const task = tasks.find((t) => t.id === active.id);
+    const task = tasks.find((t) => t.id === String(active.id));
     if (!task) return;
     const droppedOnPending = over.id === "pending";
     const droppedOnDone = over.id === "done";
@@ -350,6 +351,7 @@ export function TasksPage() {
           sensors={sensors}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
+          onDragCancel={() => setActiveTask(null)}
         >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <DroppableColumn
