@@ -27,7 +27,7 @@ function SpringCheckbox({
         springing ? "animate-checkbox-spring" : ""
       } ${
         checked
-          ? "border-brand-500 bg-brand-500"
+          ? "border-transparent bg-brand-500"
           : "border-neutral-300 bg-white dark:border-neutral-600 dark:bg-neutral-800"
       }`}
     >
@@ -92,6 +92,7 @@ export function TasksPage() {
     try {
       await tasksApi.toggle(id);
       await loadTasks();
+      toast("Tarefa atualizada.", "success");
     } catch {
       toast("Erro ao atualizar tarefa.", "error");
     }
@@ -204,7 +205,7 @@ export function TasksPage() {
             <li
               key={task.id}
               style={{ animationDelay: `${Math.min(i, 8) * 50}ms` }}
-              className={`flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white px-4 py-3 shadow-sm transition-all dark:border-border-dark dark:bg-card-dark ${
+              className={`group flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white px-4 py-3 shadow-sm transition-all dark:border-border-dark dark:bg-card-dark ${
                 deletingIds.has(task.id)
                   ? "animate-slide-out"
                   : "animate-card-enter hover:-translate-y-0.5 hover:shadow-md"
