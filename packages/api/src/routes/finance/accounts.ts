@@ -28,7 +28,7 @@ router.post("/", validate(createSchema), async (req, res, next) => {
     const ulid = crypto.randomUUID().replace(/-/g, "").slice(0, 26);
 
     const { data, error } = await supabaseAdmin!
-      .from("finance_accounts")
+      .from("accounts")
       .insert({
         id: ulid,
         user_id: req.user!.id,
@@ -55,7 +55,7 @@ router.post("/", validate(createSchema), async (req, res, next) => {
 router.get("/", async (req, res, next) => {
   try {
     const { data, error } = await supabaseAdmin!
-      .from("finance_accounts")
+      .from("accounts")
       .select("*")
       .eq("user_id", req.user!.id)
       .order("created_at", { ascending: false });
@@ -74,7 +74,7 @@ router.get("/", async (req, res, next) => {
 router.get("/:id", async (req, res, next) => {
   try {
     const { data, error } = await supabaseAdmin!
-      .from("finance_accounts")
+      .from("accounts")
       .select("*")
       .eq("id", req.params.id)
       .eq("user_id", req.user!.id)
@@ -109,7 +109,7 @@ router.put("/:id", validate(updateSchema), async (req, res, next) => {
     };
 
     const { data, error } = await supabaseAdmin!
-      .from("finance_accounts")
+      .from("accounts")
       .update(updates)
       .eq("id", req.params.id)
       .eq("user_id", req.user!.id)
@@ -132,7 +132,7 @@ router.put("/:id", validate(updateSchema), async (req, res, next) => {
 router.delete("/:id", async (req, res, next) => {
   try {
     const { error } = await supabaseAdmin!
-      .from("finance_accounts")
+      .from("accounts")
       .delete()
       .eq("id", req.params.id)
       .eq("user_id", req.user!.id);
