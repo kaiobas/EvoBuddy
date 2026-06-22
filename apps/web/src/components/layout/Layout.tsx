@@ -75,8 +75,8 @@ export function Layout() {
       >
         {/* Logo */}
         <div className="flex h-16 items-center justify-between border-b border-neutral-200 px-6 dark:border-border-dark">
-          <img src="/logo-black.png" alt="EvoBuddy" className="h-7 w-auto dark:hidden" />
-          <img src="/logo-white.png" alt="EvoBuddy" className="h-7 w-auto hidden dark:block" />
+          <img src="/logo-black.png" alt="EvoBuddy" className="h-28 w-auto dark:hidden" />
+          <img src="/logo-white.png" alt="EvoBuddy" className="h-28 w-auto hidden dark:block" />
           <button
             className="text-neutral-500 hover:text-neutral-700 lg:hidden min-h-0 min-w-0 p-1"
             onClick={() => setDrawerOpen(false)}
@@ -190,8 +190,8 @@ export function Layout() {
           >
             <Menu className="h-5 w-5" />
           </button>
-          <img src="/logo-black.png" alt="EvoBuddy" className="h-6 w-auto dark:hidden" />
-          <img src="/logo-white.png" alt="EvoBuddy" className="h-6 w-auto hidden dark:block" />
+          <img src="/logo-black.png" alt="EvoBuddy" className="h-24 w-auto dark:hidden" />
+          <img src="/logo-white.png" alt="EvoBuddy" className="h-24 w-auto hidden dark:block" />
           <div className="flex items-center gap-1">
             <button
               onClick={cycleTheme}
