@@ -429,9 +429,11 @@ function BalanceChartWidget({
 function CategoryPieWidget({
   transactions,
   categories,
+  balanceVisible,
 }: {
   transactions: TransactionDTO[];
   categories: CategoryDTO[];
+  balanceVisible: boolean;
 }) {
   const catMap = new Map(categories.map((c) => [c.id, c]));
 
@@ -473,7 +475,9 @@ function CategoryPieWidget({
               ))}
             </Pie>
             <Tooltip
-              formatter={(value) => formatBRL(typeof value === "number" ? value : 0)}
+              formatter={(value) =>
+                balanceVisible ? formatBRL(typeof value === "number" ? value : 0) : "••••"
+              }
               contentStyle={{
                 borderRadius: "12px",
                 border: "1px solid #e5e7eb",
@@ -694,6 +698,7 @@ export function FinanceDashboard() {
           <CategoryPieWidget
             transactions={transactions}
             categories={categories}
+            balanceVisible={balanceVisible}
           />
         );
       default:
