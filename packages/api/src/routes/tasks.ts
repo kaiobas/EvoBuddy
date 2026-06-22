@@ -1,45 +1,175 @@
 import { Router } from "express";
+import { z } from "zod";
+import { authMiddleware } from "../middleware/auth.js";
+import { validate } from "../middleware/validate.js";
+import { supabaseAdmin } from "../lib/supabase.js";
+import { AppError } from "../middleware/error.js";
 
 const router = Router();
 
-/**
- * GET /api/tasks
- * Listar tarefas do usuário autenticado.
- */
-router.get("/", (_req, res) => {
-  res.status(501).json({ error: "Not implemented yet" });
-});
+// Todas as rotas exigem autenticação
+router.use(authMiddleware);
 
 /**
  * POST /api/tasks
  * Criar nova tarefa.
  */
-router.post("/", (_req, res) => {
-  res.status(501).json({ error: "Not implemented yet" });
+const createSchema = z.object({
+  title: z.string().min(1).max(500),
+  description: z.string().default(""),
+});
+
+router.post("/", validate(createSchema), async (req, res, next) => {
+  try {
+    const { title, description } = req.body;
+    const ulid = crypto.randomUUID().replace(/-/g, "").slice(0, 26);
+
+    const { data, error } = await supabaseAdmin!
+      .from("tasks")
+      .insert({
+        id: ulid,
+        user_id: req.user!.id,
+        title,
+        description,
+      })
+      .select()
+      .single();
+
+    if (error) throw new AppError(error.message, 500);
+    res.status(201).json(data);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/tasks
+ * Listar tarefas do usuário autenticado.
+ */
+router.get("/", async (req, res, next) => {
+  try {
+    const { data, error } = await supabaseAdmin!
+      .from("tasks")
+      .select("*")
+      .eq("user_id", req.user!.id)
+      .order("created_at", { ascending: false });
+
+    if (error) throw new AppError(error.message, 500);
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/tasks/:id
+ * Obter uma tarefa específica.
+ */
+router.get("/:id", async (req, res, next) => {
+  try {
+    const { data, error } = await supabaseAdmin!
+      .from("tasks")
+      .select("*")
+      .eq("id", req.params.id)
+      .eq("user_id", req.user!.id)
+      .single();
+
+    if (error || !data) {
+      throw new AppError("Tarefa não encontrada", 404);
+    }
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
  * PUT /api/tasks/:id
  * Atualizar tarefa existente.
  */
-router.put("/:id", (_req, res) => {
-  res.status(501).json({ error: "Not implemented yet" });
+const updateSchema = z.object({
+  title: z.string().min(1).max(500).optional(),
+  description: z.string().optional(),
+  completed: z.boolean().optional(),
 });
 
-/**
- * DELETE /api/tasks/:id
- * Remover tarefa.
- */
-router.delete("/:id", (_req, res) => {
-  res.status(501).json({ error: "Not implemented yet" });
+router.put("/:id", validate(updateSchema), async (req, res, next) => {
+  try {
+    const updates: Record<string, unknown> = {
+      ...req.body,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await supabaseAdmin!
+      .from("tasks")
+      .update(updates)
+      .eq("id", req.params.id)
+      .eq("user_id", req.user!.id)
+      .select()
+      .single();
+
+    if (error || !data) {
+      throw new AppError("Tarefa não encontrada", 404);
+    }
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
  * PATCH /api/tasks/:id/toggle
  * Alternar estado completed.
  */
-router.patch("/:id/toggle", (_req, res) => {
-  res.status(501).json({ error: "Not implemented yet" });
+router.patch("/:id/toggle", async (req, res, next) => {
+  try {
+    // Busca estado atual
+    const { data: current, error: fetchError } = await supabaseAdmin!
+      .from("tasks")
+      .select("completed")
+      .eq("id", req.params.id)
+      .eq("user_id", req.user!.id)
+      .single();
+
+    if (fetchError || !current) {
+      throw new AppError("Tarefa não encontrada", 404);
+    }
+
+    const { data, error } = await supabaseAdmin!
+      .from("tasks")
+      .update({
+        completed: !current.completed,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", req.params.id)
+      .eq("user_id", req.user!.id)
+      .select()
+      .single();
+
+    if (error) throw new AppError(error.message, 500);
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * DELETE /api/tasks/:id
+ * Remover tarefa.
+ */
+router.delete("/:id", async (req, res, next) => {
+  try {
+    const { error } = await supabaseAdmin!
+      .from("tasks")
+      .delete()
+      .eq("id", req.params.id)
+      .eq("user_id", req.user!.id);
+
+    if (error) throw new AppError(error.message, 500);
+    res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
 });
 
 export default router;

@@ -10,6 +10,7 @@ services:
       args:
         - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
         - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+        - VITE_API_URL=${VITE_API_URL}
     container_name: evobuddy-api
     restart: unless-stopped
     ports:
@@ -36,6 +37,7 @@ services:
       args:
         - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
         - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+        - VITE_API_URL=${VITE_API_URL}
     container_name: evobuddy-web
     restart: unless-stopped
     ports:
