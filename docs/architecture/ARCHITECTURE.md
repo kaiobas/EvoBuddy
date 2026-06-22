@@ -6,17 +6,32 @@
 
 ## 1. Visão Geral
 
-Telos é uma aplicação de produtividade pessoal **offline-first** e **local-first**, distribuída como app mobile (React Native) e desktop (Electron). A sincronização é um complemento opcional — o sistema funciona completamente sem internet.
+EvoBuddy é uma aplicação de produtividade pessoal **Web-first** e **Cloud-native**.
+Ela roda exclusivamente no navegador e persiste todos os dados na nuvem (Supabase PostgreSQL),
+vinculados à conta do usuário. Não há versão mobile nativa nem desktop — apenas uma SPA
+acessível de qualquer dispositivo com navegador e internet.
+
+### Por que essa abordagem?
+
+| Problema anterior | Solução nova |
+|---|---|
+| Offline-first exigia sync P2P complexo | Cloud-first: dados centralizados no PostgreSQL |
+| React Native + Electron = 2x manutenção | Web-only: uma única SPA |
+| SQLite em cada dispositivo | Supabase: um banco central por usuário |
+| Sync = conflitos, CRDT, changelogs | Sem sync: a API é a fonte da verdade |
+| Instalação em cada aparelho | Sem instalação: qualquer browser |
 
 ### Princípios Inegociáveis
 
 | Princípio | Implicação prática |
 |---|---|
-| **Offline First** | Toda operação deve funcionar sem rede. Sync é eventual, nunca bloqueante. |
-| **Local First** | Dados residem no dispositivo. Nuvem é espelho, não fonte da verdade. |
-| **Core independente** | Regras de negócio não importam SQLite, Electron ou React Native. |
-| **Storage substituível** | Trocar SQLite por outro mecanismo não deve alterar o core. |
-| **IA como assistente** | O app funciona 100% sem IA. IA é camada opt-in. |
+| **Web-first** | Zero instalação. Funciona em qualquer navegador moderno — celular, tablet ou desktop. |
+| **Mobile-first responsivo** | Design começa pelo mobile e expande para desktop com TailwindCSS. Uma única SPA que se adapta a qualquer tela. |
+| **Cloud-native** | Fonte da verdade é o Supabase PostgreSQL. Cache local é efêmero. |
+| **Autenticação obrigatória** | Cada usuário vê apenas seus próprios dados. RLS policies no banco. |
+| **Core independente** | Regras de negócio em `packages/shared` não importam backend, banco nem framework. |
+| **API como fronteira** | Frontend nunca acessa o banco diretamente (exceto via Supabase client autenticado). |
+| **IA como assistente** | O app funciona 100% sem IA. IA é camada opt-in (futuro). |
 | **Simplicidade** | Nenhuma abstração sem necessidade demonstrada. |
 
 ---
@@ -24,31 +39,21 @@ Telos é uma aplicação de produtividade pessoal **offline-first** e **local-fi
 ## 2. Estrutura do Monorepo
 
 ```
-telos/
+evobuddy/
 ├── apps/
-│   ├── mobile/          # React Native CLI
-│   └── desktop/         # Electron + React
+│   └── web/                # SPA React + Vite + TailwindCSS
 │
 ├── packages/
-│   ├── core/            # Entidades, interfaces, event bus — zero deps externas
-│   ├── modules/         # Use cases por domínio (notes, tasks, assistant…)
-│   ├── ui/              # Componentes compartilhados (RN + React)
-│   ├── storage/         # Implementações concretas de storage
-│   ├── sync/            # Engine de sincronização (P2P + cloud)
-│   └── ai/              # Adapters para LLMs locais e remotos
-│
-├── tools/
-│   ├── eslint-config/
-│   ├── tsconfig/
-│   └── scripts/         # build, test, gen-types
+│   ├── shared/             # Schemas Zod, stores Zustand, tipos compartilhados
+│   ├── api/                # Backend Node.js + Express + Supabase Admin
+│   └── dev-rag/            # MCP server para opencode (ferramenta interna)
 │
 ├── docs/
 │   ├── PLAN.md
-│   ├── ARCHITECTURE.md  # este arquivo
-│   ├── features/        # FEATURE.md por funcionalidade
-│   └── specs/           # SPEC.md + TASKS.md por feature
+│   └── architecture/
+│       └── ARCHITECTURE.md # este arquivo
 │
-├── package.json         # workspace root (pnpm workspaces)
+├── package.json            # workspace root (pnpm workspaces)
 ├── pnpm-workspace.yaml
 └── turbo.json
 ```
@@ -56,558 +61,480 @@ telos/
 ### Regras de Dependência (acíclicas)
 
 ```
-apps/* → packages/modules → packages/core
-apps/* → packages/ui
-apps/* → packages/storage
-apps/* → packages/sync (opcional)
-apps/* → packages/ai (opcional)
-
-packages/storage → packages/core
-packages/sync    → packages/core
-packages/ai      → packages/core
-packages/modules → packages/core
+apps/web → packages/shared     (tipos, schemas, stores)
+apps/web → packages/api        (apenas tipos das rotas, se necessário)
+packages/api → packages/shared  (schemas para validação no backend)
 
 # Proibido:
-packages/core → qualquer outro package
-packages/modules → packages/storage (só via interfaces do core)
-packages/modules → packages/sync
-packages/modules → packages/ai
+packages/shared → qualquer outro package (zero deps de plataforma)
+apps/web → banco diretamente (sempre via API ou Supabase client)
+packages/api → apps/*  (backend não conhece frontend)
 ```
-
-> **Regra de ouro:** `packages/core` não pode importar nada de fora de si mesmo. Se uma abstração precisa de uma dependência externa, ela pertence a `packages/storage`, `packages/sync` ou `packages/ai`.
 
 ---
 
-## 3. packages/core
+## 3. Stack Detalhada
 
-O núcleo do sistema. **Sem dependências de runtime** além de TypeScript e Zod.
+| Camada | Tecnologia | Justificativa |
+|---|---|---|
+| **Frontend** | React 19 + Vite 6 + TailwindCSS | SPA moderna, HMR rápido, estilos utilitários |
+| **Roteamento** | React Router v7 (ou TanStack Router) | Navegação SPA com lazy loading |
+| **Estado** | Zustand 5 | Leve, sem boilerplate, tipo-safe |
+| **Validação** | Zod 3 | Schemas compartilhados entre front e back |
+| **Backend** | Node.js + Express | Simples, maduro, tipos compartilhados via Zod |
+| **Database** | PostgreSQL (Supabase) | Relacional, RLS, bom com Zod |
+| **Auth** | Supabase Auth | Magic link, Google, GitHub, built-in RLS |
+| **API Security** | Helmet + CORS + Rate Limiting + Zod | Múltiplas camadas de defesa |
+| **Data Access** | Express API como proxy (nunca Supabase direto do frontend) | service_role key secreta no servidor |
+| **Dev RAG** | Ollama + Prisma + SQLite | Ferramenta interna, não do produto |
 
-### Estrutura interna
+---
+
+## 4. Fluxo de Dados
 
 ```
-packages/core/
-├── entities/
-│   ├── Note.ts          # Zod schema + TypeScript type
-│   ├── Task.ts
-│   ├── Attachment.ts
-│   └── index.ts
-│
-├── repositories/        # Interfaces puras (contratos)
-│   ├── INoteRepository.ts
-│   ├── ITaskRepository.ts
-│   └── index.ts
-│
-├── events/
-│   ├── EventBus.ts      # Interface + implementação in-memory
-│   ├── EventTypes.ts    # Discriminated union de todos os eventos
-│   └── index.ts
-│
-├── errors/
-│   ├── AppError.ts      # Hierarquia de erros tipados
-│   └── index.ts
-│
-└── utils/
-    ├── id.ts            # nanoid wrapper
-    ├── date.ts          # utilitários de data (sem moment/dayjs no core)
-    └── index.ts
+┌─────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────────┐
+│   Browser    │────▶│  packages/   │────▶│  Supabase    │────▶│   PostgreSQL     │
+│  (React SPA) │     │  api         │     │  Admin       │     │                  │
+│  ────────────│◀────│  (Express)   │◀────│  Client      │◀────│  (RLS por user)  │
+│  Auth apenas │     └──────────────┘     └──────────────┘     └──────────────────┘
+│  via Supabase│
+│  Client      │
+└─────────────┘
+       │
+       ▼ (apenas para login)
+┌─────────────┐
+│  Supabase   │
+│  Auth       │
+│  (nuvem)    │
+└─────────────┘
 ```
 
-### Entidade — exemplo canônico
+### 🔒 Padrão de segurança: API como proxy
+
+Diferente de apps que usam Supabase Client direto no frontend com anon key,
+**toda operação de dados passa pelo nosso backend Express**. Isso porque:
+
+1. **A chave anon do Supabase fica exposta no frontend** — qualquer um pode vê-la
+2. **Com a API como proxy**, usamos a `service_role` key (secreta) no servidor
+3. **Camadas extras de segurança** no caminho: rate limiting, validação Zod, Helmet, CORS
+
+### O que o frontend faz diretamente
+
+Apenas **autenticação** via Supabase Auth Client:
+- Login com Google, GitHub, Magic Link
+- Gerenciamento de sessão (JWT)
+- O JWT é armazenado no `localStorage` e enviado para a API no header `Authorization: Bearer <token>`
+
+### O que o backend faz
+
+Tudo que envolve dados:
+- CRUD de notas, tasks, etc.
+- Validação com Zod (mesmos schemas do `packages/shared`)
+- Verificação do JWT via Supabase Admin Client
+- Rate limiting, sanitização, logs
+
+---
+
+## 5. Autenticação e Segurança
+
+### Supabase Auth
+
+- **Provedores**: Magic link (email), Google, GitHub
+- **Sessão**: JWT gerenciado pelo Supabase Client no frontend; cookie httpOnly `sb-token` para comunicação com a API
+- **RLS**: Toda tabela tem `user_id` (UUID) com policy `USING (auth.uid() = user_id)` — redundante com a API, mas essencial como defesa em profundidade
+- **Anônimo?**: Não. O app exige login para qualquer operação.
+
+```sql
+-- Exemplo de RLS policy
+CREATE POLICY "users_see_only_own_notes" ON notes
+  FOR ALL USING (auth.uid() = user_id);
+```
+
+### Zustand + Auth
 
 ```typescript
-// packages/core/entities/Note.ts
-import { z } from 'zod'
-
-export const NoteSchema = z.object({
-  id: z.string().nanoid(),
-  title: z.string().max(500),
-  content: z.string(),
-  tags: z.array(z.string()),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
-  deletedAt: z.string().datetime().nullable(),
-  version: z.number().int().min(0),   // para CRDT / sync
-  deviceId: z.string(),               // origem da última modificação
-})
-
-export type Note = z.infer<typeof NoteSchema>
-export type NoteInput = z.infer<typeof NoteSchema.omit({ id: true, createdAt: true, updatedAt: true, version: true }>>
-```
-
-### Repositório — interface pura
-
-```typescript
-// packages/core/repositories/INoteRepository.ts
-import type { Note, NoteInput } from '../entities/Note'
-
-export interface INoteRepository {
-  findById(id: string): Promise<Note | null>
-  findAll(filters?: NoteFilters): Promise<Note[]>
-  save(note: Note): Promise<Note>
-  delete(id: string): Promise<void>
-  findByUpdatedSince(timestamp: string): Promise<Note[]>  // para sync
-}
-
-export interface NoteFilters {
-  tags?: string[]
-  search?: string
-  deletedAt?: 'include' | 'exclude' | 'only'
-}
-```
-
-### Event Bus
-
-```typescript
-// packages/core/events/EventTypes.ts
-export type AppEvent =
-  | { type: 'note:created';  payload: Note }
-  | { type: 'note:updated';  payload: Note }
-  | { type: 'note:deleted';  payload: { id: string } }
-  | { type: 'task:created';  payload: Task }
-  | { type: 'task:updated';  payload: Task }
-  | { type: 'sync:started' }
-  | { type: 'sync:completed'; payload: SyncResult }
-  | { type: 'sync:conflict';  payload: ConflictInfo }
-
-export interface IEventBus {
-  emit<T extends AppEvent>(event: T): void
-  on<T extends AppEvent['type']>(
-    type: T,
-    handler: (event: Extract<AppEvent, { type: T }>) => void
-  ): () => void  // retorna unsubscribe
+// store de auth
+interface AuthState {
+  user: User | null;
+  session: Session | null;
+  loading: boolean;
+  signIn: (email: string) => Promise<void>;
+  signOut: () => Promise<void>;
 }
 ```
 
 ---
 
-## 4. packages/modules
+## 6. Segurança
 
-Cada módulo é um pacote com use cases (application layer). Importa apenas interfaces do `core`, nunca implementações concretas.
+### Camadas de defesa
 
-### Estrutura por módulo
+| Camada | O que faz | Implementação |
+|---|---|---|
+| **Helmet** | Security headers (CSP, XSS, etc.) | Middleware Express |
+| **CORS** | Restringe origens permitidas | `CORS_ORIGIN` no env |
+| **Rate Limiting** | 100 req/min global, 5 req/min auth | `express-rate-limit` |
+| **Validação Zod** | Sanitiza inputs em todas as rotas | Middleware `validate()` |
+| **Auth JWT** | Verifica token em toda rota protegida | `authMiddleware` + Supabase Admin |
+| **Error Handler** | Não vaza detalhes internos em produção | `AppError` + sanitização |
+| **nginx** | Headers de segurança, CSP, HTTPS | Reverse proxy (deploy) |
+| **RLS** | Defesa em profundidade no banco | Supabase Row Level Security |
 
-```
-packages/modules/
-├── notes/
-│   ├── src/
-│   │   ├── CreateNote.ts      # use case
-│   │   ├── UpdateNote.ts
-│   │   ├── DeleteNote.ts
-│   │   ├── SearchNotes.ts
-│   │   └── index.ts
-│   ├── package.json
-│   └── tsconfig.json
-│
-├── tasks/
-│   └── src/ ...
-│
-└── assistant/
-    └── src/ ...
-```
+### Boas práticas
 
-### Use case — exemplo
+- **Nunca** armazenar `service_role` key no frontend
+- **Nunca** logar tokens, senhas ou dados sensíveis
+- **Sempre** validar inputs com Zod (frontend + backend)
+- **Sempre** usar HTTPS em produção
+- **Sempre** restringir CORS para o domínio do app
+- **Cookies**: `httpOnly`, `secure`, `sameSite: strict` em produção
 
-```typescript
-// packages/modules/notes/src/CreateNote.ts
-import type { INoteRepository } from '@telos/core/repositories'
-import type { IEventBus } from '@telos/core/events'
-import { NoteSchema, type NoteInput } from '@telos/core/entities'
-import { generateId } from '@telos/core/utils'
+### Variáveis sensíveis (NUNCA comitar)
 
-export class CreateNote {
-  constructor(
-    private readonly notes: INoteRepository,
-    private readonly events: IEventBus,
-  ) {}
-
-  async execute(input: NoteInput): Promise<Note> {
-    const note = NoteSchema.parse({
-      ...input,
-      id: generateId(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      deletedAt: null,
-      version: 0,
-      deviceId: getDeviceId(),
-    })
-
-    const saved = await this.notes.save(note)
-    this.events.emit({ type: 'note:created', payload: saved })
-    return saved
-  }
-}
-```
-
-> Os módulos nunca instanciam repositórios — recebem por injeção de dependência. O app (mobile/desktop) faz a composição.
+| Variável | Onde | Secreta? |
+|---|---|---|
+| `VITE_SUPABASE_URL` | Frontend | Não (pública) |
+| `VITE_SUPABASE_ANON_KEY` | Frontend | Não (pública, RLS protege) |
+| `VITE_API_URL` | Frontend | Não |
+| `SUPABASE_URL` | Backend | Não |
+| `SUPABASE_SERVICE_KEY` | Backend | **SIM** |
+| `PORT` | Backend | Não |
+| `CORS_ORIGIN` | Backend | Não |
+| `COOKIE_SECURE` | Backend | Não |
 
 ---
 
-## 5. packages/storage
-
-Implementações concretas dos repositórios. Depende de `core` (interfaces) e das libs nativas (SQLite, etc.).
+O pacote compartilhado contém **apenas**:
+- Schemas Zod (validam tanto no frontend quanto no backend)
+- Tipos TypeScript inferidos dos schemas
+- Stores Zustand (estado da UI — **não** são fonte da verdade)
 
 ### Estrutura
 
 ```
-packages/storage/
-├── sqlite/
-│   ├── adapters/
-│   │   ├── SqliteNoteRepository.ts   # implementa INoteRepository
-│   │   ├── SqliteTaskRepository.ts
+packages/shared/src/
+├── modules/
+│   ├── notes/
+│   │   ├── schema.ts        # NoteSchema (agora com user_id opcional no tipo)
+│   │   ├── store.ts         # useNoteStore (cache UI)
 │   │   └── index.ts
-│   ├── migrations/
-│   │   ├── 001_initial.ts
-│   │   ├── 002_add_tags.ts
-│   │   └── runner.ts
-│   ├── platform/
-│   │   ├── mobile.ts    # better-sqlite3 wrapper para RN
-│   │   └── desktop.ts   # better-sqlite3 para Electron
-│   └── index.ts
-│
-└── memory/
-    ├── MemoryNoteRepository.ts   # para testes e dev
-    └── index.ts
+│   ├── tasks/
+│   │   ├── schema.ts
+│   │   ├── store.ts
+│   │   └── index.ts
+│   └── settings/
+│       ├── schema.ts
+│       ├── store.ts
+│       └── index.ts
+├── auth/
+│   └── store.ts
+├── types.ts                 # tipos auxiliares (Pagination, etc.)
+└── index.ts
 ```
 
-### Desacoplamento via Platform Abstraction
+### Mudanças importantes do modelo anterior
+
+| Antes (offline-first) | Agora (cloud-first) |
+|---|---|
+| `version: number`, `deviceId: string` | Removido (não há sync) |
+| `deletedAt` soft-delete | Removido (DELETE real via API) |
+| Timestamps em `number` (Date.now()) | Timestamps em `string` ISO 8601 do PostgreSQL |
+| `Map<string, Note>` no store | `Note[]` (fetch da API) |
+| Store = cache + grava no SQLite | Store = cache efêmero da UI |
+
+### Schema — exemplo canônico
 
 ```typescript
-// packages/storage/sqlite/platform/interface.ts
-export interface ISQLiteDriver {
-  execute(sql: string, params?: unknown[]): Promise<void>
-  query<T>(sql: string, params?: unknown[]): Promise<T[]>
-  transaction(fn: () => Promise<void>): Promise<void>
-}
+// packages/shared/src/modules/notes/schema.ts
+import { z } from "zod";
 
-// A implementação mobile usa op-sqlite ou react-native-sqlite-storage
-// A implementação desktop usa better-sqlite3 via Electron IPC
-// O SqliteNoteRepository só conhece ISQLiteDriver
-```
+export const noteSchema = z.object({
+  id: z.string().ulid(),
+  user_id: z.string().uuid(),       // vinculado à conta
+  title: z.string().default(""),
+  content: z.string().default(""),
+  created_at: z.string().datetime(), // ISO do PostgreSQL
+  updated_at: z.string().datetime(),
+});
 
-### Migrations
-
-```typescript
-// packages/storage/sqlite/migrations/runner.ts
-interface Migration {
-  version: number
-  name: string
-  up: (db: ISQLiteDriver) => Promise<void>
-  down: (db: ISQLiteDriver) => Promise<void>
-}
-
-// Migrations são independentes de plataforma — rodam via ISQLiteDriver
+export type Note = z.infer<typeof noteSchema>;
+export type NoteInput = z.infer<typeof noteSchema.omit({ id: true, user_id: true, created_at: true, updated_at: true })>;
 ```
 
 ---
 
-## 6. packages/sync
+## 7. apps/web
 
-Engine de sincronização. **Completamente opcional** — o app funciona sem inicializar este pacote.
+Aplicação React SPA. Único app do monorepo.
 
-### Fase 1: P2P Local (sem backend)
+**Design mobile-first:** toda a interface é construída primeiro para telas pequenas
+(celulares) e expandida progressivamente para tablets e desktops usando os breakpoints
+do TailwindCSS (`sm:`, `md:`, `lg:`, `xl:`). O layout se adapta:
+- **Mobile** (< 768px): sidebar vira drawer navigable por ícone, conteúdo em coluna única
+- **Tablet** (768px - 1024px): sidebar compacta (ícones + labels), grid de 2 colunas
+- **Desktop** (> 1024px): sidebar expandida, grid de 3+ colunas, atalhos de teclado
 
-```
-packages/sync/
-├── core/
-│   ├── SyncEngine.ts          # orquestra o processo
-│   ├── ConflictResolver.ts    # estratégia CRDT
-│   └── ChangeLog.ts           # registro de mudanças pendentes
-│
-├── adapters/
-│   ├── p2p/
-│   │   ├── MdnsDiscovery.ts   # descobre peers na rede local
-│   │   ├── WebRtcTransport.ts # canal de comunicação
-│   │   └── P2PSyncAdapter.ts
-│   └── cloud/                 # Fase 2 — placeholder
-│       └── CloudSyncAdapter.ts
-│
-└── crdt/
-    ├── operations.ts          # operações CRDT por tipo de entidade
-    └── merge.ts               # algoritmo de merge
-```
+Isso garante que o app seja utilizável no celular (dando um load), no tablet e no
+computador com a **mesma base de código**, sem precisar de React Native ou Electron.
 
-### Estratégia CRDT
-
-Cada entidade tem um campo `version` (Lamport clock) e `deviceId`. Conflitos são resolvidos por:
-
-1. **Last-Write-Wins (LWW)** como padrão inicial para simplicidade
-2. Campo `version` incrementado a cada mudança local
-3. Merge: ganha a versão com maior `version`; em empate, ganha `deviceId` lexicograficamente maior
-4. **Deleções** são soft-deletes (`deletedAt`) para evitar conflitos de ressurreição
-
-> Para V1 o LWW é suficiente. Automerge/Yjs será avaliado se houver edição colaborativa real-time.
-
-### Change Log (offline queue)
-
-```typescript
-interface ChangeLogEntry {
-  id: string
-  entityType: 'note' | 'task'
-  entityId: string
-  operation: 'create' | 'update' | 'delete'
-  payload: unknown
-  timestamp: string
-  deviceId: string
-  synced: boolean
-}
-```
-
-Toda mutação local grava no `ChangeLog`. O sync engine drena essa fila quando um peer está disponível.
-
-### Fluxo P2P
+### Estrutura
 
 ```
-[Device A]                          [Device B]
-   │                                    │
-   ├─ mDNS: anuncia presença ──────────►│
-   │◄──────── mDNS: descobre A ─────────┤
-   │                                    │
-   ├─ WebRTC: estabelece canal ─────────►│
-   │◄────────── handshake ───────────────┤
-   │                                    │
-   ├─ envia ChangeLog delta ────────────►│
-   │◄──────── aplica + ACK ──────────────┤
-   │◄──────── envia delta inverso ───────┤
-   ├─ aplica + ACK ─────────────────────►│
-   │                                    │
+apps/web/
+├── src/
+│   ├── main.tsx              # entry point
+│   ├── App.tsx               # providers + router
+│   ├── routes/                # páginas
+│   │   ├── index.tsx          # / — dashboard
+│   │   ├── login.tsx          # /login
+│   │   ├── notes.tsx          # /notes
+│   │   ├── notes.$id.tsx      # /notes/:id
+│   │   ├── tasks.tsx          # /tasks
+│   │   └── settings.tsx       # /settings
+│   ├── components/            # UI components
+│   │   ├── ui/                # primitives (botão, input, card)
+│   │   ├── layout/            # sidebar, header, shell
+│   │   └── features/          # note-card, task-item, etc.
+│   ├── hooks/                 # custom hooks (useAuth, useNotes, etc.)
+│   ├── lib/                   # supabase client, api client
+│   │   └── supabase.ts
+│   └── styles/
+│       └── globals.css        # TailwindCSS
+├── index.html
+├── package.json
+├── vite.config.ts
+└── tsconfig.json
+```
+
+### Responsabilidades
+
+- **Roteamento**: React Router com lazy loading por rota
+- **Autenticação**: Fluxo completo (login, callback, logout, proteção de rotas)
+- **Mobile-first responsivo**: TailwindCSS com breakpoints `sm:`, `md:`, `lg:`, `xl:` — layout adaptativo sem media queries manuais
+- **Touch-friendly**: Todos os botões e alvos de interação com mínimo de 44px (padrão WCAG para toque)
+- **UI**: Componentes puros com TailwindCSS, sem lib externa de componentes
+- **API Client**: `lib/api.ts` — cliente tipado que chama o backend Express (nunca Supabase direto para dados)
+- **Auth**: Supabase Auth Client apenas para login; token JWT enviado para API via `Authorization: Bearer`
+- **Otimista**: Updates otimistas com rollback em erro
+
+---
+
+## 8. packages/api
+
+Backend Node.js + Express. **Opcional para o MVP** — 90% das operações podem
+ser feitas diretamente via Supabase Client + RLS. O backend existe para:
+
+- Operações administrativas (seeds, migrações complexas)
+- Integrações com IA (Ollama/OpenAI)
+- Webhooks e tarefas agendadas
+- Endpoints que exigem lógica server-side
+
+### Estrutura
+
+```
+packages/api/
+├── src/
+│   ├── index.ts              # server entry
+│   ├── router.ts             # rotas
+│   ├── middleware/
+│   │   ├── auth.ts           # verifica JWT do Supabase
+│   │   └── error.ts          # error handler
+│   ├── routes/
+│   │   ├── notes.ts
+│   │   ├── tasks.ts
+│   │   └── ai.ts
+│   └── lib/
+│       ├── supabase.ts       # Supabase Admin Client
+│       └── validators.ts     # reuse schemas do shared
+├── package.json
+└── tsconfig.json
 ```
 
 ---
 
-## 7. packages/ai
+## 9. Database (Supabase PostgreSQL)
 
-Adapters para diferentes provedores de IA. O módulo `assistant` no `packages/modules` depende apenas da interface, nunca do adapter concreto.
+### Schema Principal
 
-```
-packages/ai/
-├── interface/
-│   └── IAIAdapter.ts        # contrato único
-│
-├── adapters/
-│   ├── OllamaAdapter.ts     # LLM local via Ollama (desktop)
-│   ├── OpenAIAdapter.ts     # API remota
-│   ├── AnthropicAdapter.ts  # API remota
-│   └── MockAdapter.ts       # para testes
-│
-└── context/
-    └── ContextBuilder.ts    # monta o contexto relevante para o prompt
-```
+```sql
+CREATE TABLE notes (
+  id         TEXT PRIMARY KEY,  -- ULID
+  user_id    UUID NOT NULL REFERENCES auth.users(id),
+  title      TEXT NOT NULL DEFAULT '',
+  content    TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
-```typescript
-// packages/ai/interface/IAIAdapter.ts
-export interface IAIAdapter {
-  isAvailable(): Promise<boolean>
-  complete(prompt: string, options?: AIOptions): Promise<string>
-  stream(prompt: string, options?: AIOptions): AsyncIterable<string>
-}
+CREATE INDEX idx_notes_user_id ON notes(user_id);
+CREATE INDEX idx_notes_updated_at ON notes(updated_at DESC);
+
+-- RLS
+ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "owner_access" ON notes
+  FOR ALL USING (auth.uid() = user_id);
+
+-- mesma estrutura para tasks, settings, etc.
 ```
 
-O app tenta em ordem: local → remoto → graceful degradation (funcionalidade desabilitada, não erro).
+### Por que ULID em vez de UUID?
 
----
-
-## 8. packages/ui
-
-Componentes visuais compartilhados entre mobile e desktop.
-
-### Estratégia de abstração de plataforma
-
-```
-packages/ui/
-├── primitives/
-│   ├── Text.tsx           # abstração sobre RN Text e HTML span
-│   ├── View.tsx           # abstração sobre RN View e HTML div
-│   ├── Pressable.tsx      # abstração sobre RN e HTML button
-│   └── index.ts
-│
-├── components/
-│   ├── NoteCard.tsx       # usa primitives — funciona em ambas plataformas
-│   ├── TaskItem.tsx
-│   └── index.ts
-│
-├── tokens/
-│   ├── colors.ts          # design tokens
-│   ├── spacing.ts
-│   └── typography.ts
-│
-└── theme/
-    └── ThemeProvider.tsx
-```
-
-> Primitives usam a plataforma correta via detecção (Platform.OS no RN, padrão web fora). Componentes de produto ficam nos apps quando têm muita lógica de plataforma.
-
----
-
-## 9. apps/mobile e apps/desktop
-
-Os apps são **invólucros finos**. Responsabilidades:
-
-- Inicializar dependências (IoC container simples ou factory functions)
-- Navegar entre telas
-- Adaptar plataforma (permissões, notificações, file system)
-- **Não contêm regras de negócio**
-
-### Composição de dependências (DI manual)
-
-```typescript
-// apps/mobile/src/bootstrap.ts
-import { SqliteNoteRepository } from '@telos/storage/sqlite'
-import { InMemoryEventBus } from '@telos/core/events'
-import { CreateNote, SearchNotes } from '@telos/modules/notes'
-
-export function createNoteUseCases() {
-  const db = getSQLiteDriver()   // instância nativa mobile
-  const events = new InMemoryEventBus()
-  const notes = new SqliteNoteRepository(db)
-
-  return {
-    createNote: new CreateNote(notes, events),
-    searchNotes: new SearchNotes(notes),
-    events,
-  }
-}
-```
-
-Zustand atua como camada de estado da UI — chama os use cases e armazena o resultado em store.
+- ULIDs são ordenáveis por tempo (cluster index friendly)
+- Podem ser gerados no frontend antes do insert (otimista)
+- Compatíveis com TEXT no PostgreSQL
 
 ---
 
 ## 10. Estado Global (Zustand)
 
-```typescript
-// apps/mobile/src/stores/notesStore.ts
-import { create } from 'zustand'
-import type { Note } from '@telos/core/entities'
+Zustand é **cache da UI**, não fonte da verdade.
 
-interface NotesStore {
-  notes: Note[]
-  loading: boolean
-  load: () => Promise<void>
-  create: (input: NoteInput) => Promise<void>
+```typescript
+// packages/shared/src/modules/notes/store.ts
+import { create } from "zustand";
+import type { Note } from "./schema.js";
+
+interface NoteState {
+  notes: Note[];
+  loading: boolean;
+  error: string | null;
+  setNotes: (notes: Note[]) => void;
+  addNote: (note: Note) => void;
+  updateNote: (id: string, partial: Partial<Note>) => void;
+  removeNote: (id: string) => void;
 }
 
-// O store chama o use case — nunca acessa repositório diretamente
-export const useNotesStore = create<NotesStore>((set, get) => ({
+export const useNoteStore = create<NoteState>((set) => ({
   notes: [],
   loading: false,
-  load: async () => {
-    set({ loading: true })
-    const notes = await useCases.searchNotes.execute({})
-    set({ notes, loading: false })
-  },
-  // ...
-}))
+  error: null,
+
+  setNotes: (notes) => set({ notes }),
+  addNote: (note) => set((s) => ({ notes: [...s.notes, note] })),
+  updateNote: (id, partial) =>
+    set((s) => ({
+      notes: s.notes.map((n) => (n.id === id ? { ...n, ...partial } : n)),
+    })),
+  removeNote: (id) =>
+    set((s) => ({ notes: s.notes.filter((n) => n.id !== id) })),
+}));
+```
+
+### Ciclo de vida dos dados
+
+```
+[User Action]
+  → Zustand update otimista (UI instantânea)
+    → Supabase.mutate() (persiste no banco)
+      → Se erro: rollback Zustand + notificar usuário
+      → Se ok: confirma estado (ou atualiza com retorno do banco)
+
+[Page Load / Navigation]
+  → Zustand loading = true
+    → Supabase.query() (fetch do banco)
+      → Zustand setNotes(data), loading = false
 ```
 
 ---
 
-## 11. Tooling do Monorepo
+## 11. Testes
 
-### Package Manager: pnpm + workspaces
-
-```yaml
-# pnpm-workspace.yaml
-packages:
-  - 'apps/*'
-  - 'packages/*'
-  - 'tools/*'
-```
-
-### Build Orchestration: Turborepo
-
-```json
-// turbo.json
-{
-  "pipeline": {
-    "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/**"]
-    },
-    "test": {
-      "dependsOn": ["^build"]
-    },
-    "typecheck": {
-      "dependsOn": ["^build"]
-    }
-  }
-}
-```
-
-### TypeScript: paths aliases
-
-```json
-// tools/tsconfig/base.json
-{
-  "compilerOptions": {
-    "paths": {
-      "@telos/core/*":    ["../../packages/core/src/*"],
-      "@telos/modules/*": ["../../packages/modules/*/src/*"],
-      "@telos/storage/*": ["../../packages/storage/src/*"],
-      "@telos/sync/*":    ["../../packages/sync/src/*"],
-      "@telos/ai/*":      ["../../packages/ai/src/*"],
-      "@telos/ui/*":      ["../../packages/ui/src/*"]
-    }
-  }
-}
-```
-
----
-
-## 12. Estratégia de Testes
-
-| Camada | Tipo | Ferramenta | Velocidade |
+| Camada | Tipo | Ferramenta | O que testar |
 |---|---|---|---|
-| `packages/core` | Unit | Vitest | < 1s |
-| `packages/modules` | Unit (com MemoryAdapter) | Vitest | < 1s |
-| `packages/storage` | Integration (SQLite em memória) | Vitest | segundos |
-| `packages/sync` | Integration (two instances) | Vitest | segundos |
-| `apps/*` | E2E | Detox (mobile) / Playwright (desktop) | minutos |
-
-> A inversão de dependências via interfaces torna os módulos 100% testáveis sem banco de dados real.
+| `packages/shared` | Unit | Vitest | Schemas (parse/reject), tipos |
+| `apps/web` | Component | Vitest + Testing Library | Componentes, hooks, fluxos |
+| `apps/web` | E2E | Playwright | Fluxos críticos (login, CRUD) |
+| `packages/api` | Integration | Vitest + Supertest | Rotas, auth, validação |
 
 ---
 
-## 13. Fluxo de Desenvolvimento com IA
-
-Toda feature segue a sequência obrigatória:
+## 12. Fluxo de Desenvolvimento com IA
 
 ```
 PLAN.md
-  └─► ARCHITECTURE.md  (este arquivo — atualizado quando há decisão arquitetural)
-        └─► docs/features/FEATURE-{nome}.md   (escopo da feature)
-              └─► docs/specs/SPEC-{nome}.md   (especificação técnica detalhada)
-                    └─► docs/specs/TASKS-{nome}.md  (tarefas atômicas)
-                          └─► IMPLEMENTATION
-                                └─► REVIEW.md
+  └─► docs/architecture/ARCHITECTURE.md (atualizado com decisões)
+        └─► IMPLEMENTAÇÃO DIRETA (sem camadas extras de docs)
+
+Para mudanças arquiteturais significativas:
+  └─► Atualizar ARCHITECTURE.md antes de codificar
+
+Para features complexas:
+  └─► Breve SPEC inline na issue/task (não criar arquivo separado)
 ```
 
-Nenhuma linha de código é escrita sem SPEC aprovada. Cada task em `TASKS.md` deve ser pequena o suficiente para uma única sessão de pair-programming com IA.
+> Diferente do modelo anterior, não criamos mais `features/`, `specs/` e `TASKS.md`
+> separados para cada feature. O plano está no `PLAN.md`, a arquitetura neste
+> arquivo, e a implementação segue diretamente. A burocracia documental anterior
+> era desnecessária para um app single-dev.
 
 ---
 
-## 14. Decisões Registradas (ADR)
+## 13. Decisões Registradas (ADR)
 
 | # | Decisão | Razão | Data |
 |---|---|---|---|
-| 001 | pnpm + Turborepo como monorepo tooling | Performance de instalação, suporte nativo a workspaces, cache incremental | — |
-| 002 | Zod para validação de entidades no core | Schemas servem como documentação viva e runtime validation sem codegen | — |
-| 003 | LWW como estratégia CRDT inicial | Simplicidade para V1; Automerge avaliado quando houver colaboração real-time | — |
-| 004 | Soft-delete em todas as entidades | Evita conflitos de ressurreição na sincronização | — |
-| 005 | DI manual (sem container) | Sem overhead, sem magia, fácil de rastrear em debug | — |
-| 006 | Zustand apenas nos apps, não nos módulos | Módulos são agnósticos de framework de estado | — |
-| 007 | mDNS + WebRTC para P2P Fase 1 | Sem servidor de sinalização, funciona em LAN, implementação madura disponível | — |
+| 001 | pnpm + Turborepo | Performance, workspaces nativos, cache incremental | 2026-06 |
+| 002 | Zod no shared | Schemas servem frontend e backend com mesmo contrato | 2026-06 |
+| 003 | Supabase como backend | Auth + PostgreSQL + RLS + client JS — elimina backend próprio para MVP | 2026-06 |
+| 004 | Web-only + Mobile-first responsivo | Manutenção única, acesso universal (celular, tablet, desktop), sem instalação | 2026-06 |
+| 005 | Zustand como cache, não fonte da verdade | Cloud-first: banco central é a fonte; Zustand é efêmero | 2026-06 |
+| 006 | ULID em vez de UUID | Ordenável por tempo, gerável no frontend | 2026-06 |
+| 007 | Sem soft-delete | Cloud-first: DELETE real. Sem sync, sem conflitos de ressurreição | 2026-06 |
+| 008 | DELETE real em vez de soft-delete | Sem sync, sem necessidade de changelog ou CRDT | 2026-06 |
+| 009 | Supabase Client direto do frontend (com RLS) | 90% das operações não precisam de backend; simplicidade máxima | 2026-06 |
+| 010 | React Router + lazy loading | SPA com carregamento sob demanda, SEO não é requisito | 2026-06 |
+| 011 | API como proxy (não Supabase direto) | service_role key fica secreta no servidor; camadas extras de segurança | 2026-06 |
+| 012 | Helmet + CORS + Rate Limiting + Zod validation | Múltiplas camadas de defesa contra ataques comuns | 2026-06 |
+| 013 | JWT via localStorage + Authorization header | Simples, funciona com API REST; httpOnly cookies em produção | 2026-06 |
+| 014 | Docker multi-stage + nginx | Deploy otimizado (imagem pequena), SPA servida com headers de segurança | 2026-06 |
 
 ---
 
-## 15. Próximos Passos
+## 14. Por que Removemos
 
-- [ ] Criar `PLAN.md` com roadmap de milestones
-- [ ] Configurar monorepo base (pnpm + turbo + tsconfig)
-- [ ] Implementar `packages/core` completo com testes
-- [ ] Criar `MemoryAdapter` e testar módulo `notes` contra ele
-- [ ] Criar `SqliteAdapter` mobile
-- [ ] Criar `SqliteAdapter` desktop
-- [ ] Integrar no app mobile (tela de notas funcionando offline)
-- [ ] Repetir para tasks
-- [ ] Implementar sync P2P básico
-- [ ] Integrar AI adapter (Ollama desktop primeiro)
+### ❌ React Native (apps/mobile)
+
+Manter iOS + Android dobraria o esforço de desenvolvimento e teste.
+Com **mobile-first responsivo**, a SPA web cobre todos os dispositivos
+(celular, tablet, desktop) com uma única base de código — sem precisar
+de React Native, App Store, TestFlight ou builds nativas.
+
+### ❌ Electron (apps/desktop)
+
+Uma SPA no browser elimina a necessidade de empacotamento,
+distribuição, atualização e IPC. Acessa-se de qualquer computador
+sem instalar nada.
+
+### ❌ SQLite + Database Layer (packages/database)
+
+Sem dados locais persistentes, não precisamos de SQLite.
+O Supabase Client é a camada de dados.
+
+### ❌ Sync Engine (P2P + CRDT + ChangeLog)
+
+Com dados centralizados no PostgreSQL, não há o que sincronizar.
+Não há conflitos, não há versões, não há deviceId.
+
+### ❌ Soft-delete
+
+Era necessária para evitar conflitos de ressurreição no sync.
+Sem sync, DELETE real é mais simples e performático.
+
+### ❌ packages/core + packages/modules separados
+
+No modelo anterior, `core` (entidades) e `modules` (use cases) eram
+pacotes separados. Agora tudo está em `packages/shared` — os schemas
+são as entidades e contratos simultaneamente. Use cases são
+substituídos por hooks ou chamadas diretas ao Supabase.
+
+---
+
+## 15. Próximos Passos (visão geral — ver PLAN.md para detalhes)
+
+- [ ] Fase 1 — Fundação: monorepo, Supabase, auth, notas CRUD
+- [ ] Fase 2 — Tasks: módulo de tarefas completo
+- [ ] Fase 3 — UI/UX: refinamento visual, responsivo, dark mode
+- [ ] Fase 4 — Busca e organização: tags, filtros, pesquisa full-text
+- [ ] Fase 5 — IA: assistente integrado (opt-in)
+- [ ] Fase 6 — Polimento: performance, acessibilidade, PWA (opcional)

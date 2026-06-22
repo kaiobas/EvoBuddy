@@ -1,38 +1,53 @@
 # EvoBuddy
 
-Monorepo offline-first productivity app.
+Aplicação de produtividade pessoal **Web-first** com dados na nuvem.
 
-## Structure
+## Estrutura
 
-- `packages/shared/` — Core business logic (Zod schemas, Zustand stores)
-- `packages/database/` — SQLite abstraction interface
-- `packages/dev-rag/` — Dev RAG engine with Prisma + Ollama (MCP server)
-- `apps/desktop/` — Electron + Vite + React
-- `apps/mobile/` — React Native CLI + NativeWind
+- `packages/shared/` — Schemas Zod, stores Zustand, tipos compartilhados
+- `packages/api/` — Backend Node.js + Express + Supabase (PostgreSQL)
+- `packages/dev-rag/` — Dev RAG engine interno (MCP server para opencode/Claude)
+- `apps/web/` — SPA React + Vite + TailwindCSS
+
+## Stack
+
+| Camada | Tecnologia |
+|--------|-----------|
+| Frontend | React 19 + Vite + TailwindCSS |
+| Backend | Node.js + Express + Supabase Client |
+| Database | PostgreSQL (via Supabase) |
+| Auth | Supabase Auth (magic link, Google, GitHub) |
+| Cache | Zustand (estado da UI, não fonte da verdade) |
+| IA (futuro) | Ollama (local) + OpenAI/Anthropic (remoto) |
+
+## Princípios
+
+- **Web-first**: acessível de qualquer navegador, sem instalação
+- **Mobile-first responsivo**: design para celular primeiro, expande para desktop com TailwindCSS breakpoints
+- **Cloud-native**: dados salvos na conta do usuário (Supabase PostgreSQL)
+- **Offline?**: não é prioridade. O app requer internet para funcionar
+- **Sem sync**: dados centralizados, não distribuídos
+- **Autenticação obrigatória**: cada usuário vê apenas seus próprios dados
+- **Core independente**: regras de negócio em `packages/shared`, desacopladas do backend
+
+## Desenvolvimento
+
+```bash
+pnpm install
+pnpm dev            # dev mode (turbo) — web + api
+pnpm build          # build all
+pnpm typecheck      # typecheck all
+```
 
 ## RAG (MCP)
 
-`@evobuddy/dev-rag` runs as an MCP server for opencode and Claude.
+`@evobuddy/dev-rag` roda como MCP server para opencode e Claude.
 Tools: `rag_query`, `rag_augment`, `rag_ingest`, `rag_sessions`.
-Database: SQLite via Prisma at `packages/dev-rag/data/dev-rag.db`.
-Embeddings: Ollama (llama3.2) at `http://localhost:11434`.
+Database: SQLite via Prisma em `packages/dev-rag/data/dev-rag.db`.
+Embeddings: Ollama (llama3.2) em `http://localhost:11434`.
 
-## Development
-
-```bash
-pnpm build        # build all packages
-pnpm typecheck    # typecheck all
-pnpm dev          # dev mode (turbo)
-pnpm --filter @evobuddy/dev-rag exec prisma db push
-```
-
-## Conventions
-
-- TypeScript strict, ESM (`"type": "module"`)
-- Zod for validation, Zustand for state
-- Offline-first: never depend on external services for core features
-- Module pattern: schema → store → repository per module
+O dev-rag é uma ferramenta interna de desenvolvimento, **não** faz parte do produto.
 
 ## Task Completion
 
-**Always call `rag_finish_task` at the end of every task/issue.** This indexes a summary of what was done into the RAG so future sessions can retrieve context. The tool auto-detects commits, changed files, and diff stats — just provide a clear `title` and optional `summary`.
+**Sempre chame `rag_finish_task` ao final de toda task/issue.** Indexa um resumo do que foi feito no RAG para que sessões futuras possam recuperar contexto. A ferramenta detecta automaticamente commits, arquivos alterados e diff stats — basta fornecer um `title` claro e `summary` opcional.

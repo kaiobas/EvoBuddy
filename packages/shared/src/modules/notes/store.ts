@@ -2,7 +2,9 @@ import { create } from "zustand";
 import type { Note } from "./schema.js";
 
 interface NoteState {
-  notes: Map<string, Note>;
+  notes: Note[];
+  loading: boolean;
+  error: string | null;
   setNotes: (notes: Note[]) => void;
   addNote: (note: Note) => void;
   updateNote: (id: string, partial: Partial<Note>) => void;
@@ -11,33 +13,26 @@ interface NoteState {
 }
 
 export const useNoteStore = create<NoteState>((set, get) => ({
-  notes: new Map(),
+  notes: [],
+  loading: false,
+  error: null,
 
-  setNotes: (notes) =>
-    set({ notes: new Map(notes.map((n) => [n.id, n])) }),
+  setNotes: (notes) => set({ notes }),
 
   addNote: (note) =>
-    set((state) => {
-      const next = new Map(state.notes);
-      next.set(note.id, note);
-      return { notes: next };
-    }),
+    set((state) => ({ notes: [...state.notes, note] })),
 
   updateNote: (id, partial) =>
-    set((state) => {
-      const existing = state.notes.get(id);
-      if (!existing) return state;
-      const next = new Map(state.notes);
-      next.set(id, { ...existing, ...partial, updatedAt: Date.now() });
-      return { notes: next };
-    }),
+    set((state) => ({
+      notes: state.notes.map((n) =>
+        n.id === id ? { ...n, ...partial } : n
+      ),
+    })),
 
   removeNote: (id) =>
-    set((state) => {
-      const next = new Map(state.notes);
-      next.delete(id);
-      return { notes: next };
-    }),
+    set((state) => ({
+      notes: state.notes.filter((n) => n.id !== id),
+    })),
 
-  getNote: (id) => get().notes.get(id),
+  getNote: (id) => get().notes.find((n) => n.id === id),
 }));

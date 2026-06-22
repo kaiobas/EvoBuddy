@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/components/layout/authguard.tsx","./src/lib/api.ts","./src/lib/supabase.ts","./src/routes/auth.callback.tsx","./src/routes/index.tsx","./src/routes/login.tsx","./src/stores/authstore.ts"],"version":"5.9.3"}

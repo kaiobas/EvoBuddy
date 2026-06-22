@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    @apply antialiased;
+  }
+
+  body {
+    @apply min-h-dvh;
+  }
+
+  /* Touch targets minimo de 44px para mobile */
+  button,
+  a,
+  input[type="button"],
+  input[type="submit"] {
+    @apply min-h-[44px] min-w-[44px];
+  }
+}

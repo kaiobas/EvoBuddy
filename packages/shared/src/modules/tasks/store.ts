@@ -2,7 +2,9 @@ import { create } from "zustand";
 import type { Task } from "./schema.js";
 
 interface TaskState {
-  tasks: Map<string, Task>;
+  tasks: Task[];
+  loading: boolean;
+  error: string | null;
   setTasks: (tasks: Task[]) => void;
   addTask: (task: Task) => void;
   updateTask: (id: string, partial: Partial<Task>) => void;
@@ -12,42 +14,33 @@ interface TaskState {
 }
 
 export const useTaskStore = create<TaskState>((set, get) => ({
-  tasks: new Map(),
+  tasks: [],
+  loading: false,
+  error: null,
 
-  setTasks: (tasks) =>
-    set({ tasks: new Map(tasks.map((t) => [t.id, t])) }),
+  setTasks: (tasks) => set({ tasks }),
 
   addTask: (task) =>
-    set((state) => {
-      const next = new Map(state.tasks);
-      next.set(task.id, task);
-      return { tasks: next };
-    }),
+    set((state) => ({ tasks: [...state.tasks, task] })),
 
   updateTask: (id, partial) =>
-    set((state) => {
-      const existing = state.tasks.get(id);
-      if (!existing) return state;
-      const next = new Map(state.tasks);
-      next.set(id, { ...existing, ...partial, updatedAt: Date.now() });
-      return { tasks: next };
-    }),
+    set((state) => ({
+      tasks: state.tasks.map((t) =>
+        t.id === id ? { ...t, ...partial } : t
+      ),
+    })),
 
   removeTask: (id) =>
-    set((state) => {
-      const next = new Map(state.tasks);
-      next.delete(id);
-      return { tasks: next };
-    }),
+    set((state) => ({
+      tasks: state.tasks.filter((t) => t.id !== id),
+    })),
 
   toggleTask: (id) =>
-    set((state) => {
-      const existing = state.tasks.get(id);
-      if (!existing) return state;
-      const next = new Map(state.tasks);
-      next.set(id, { ...existing, completed: !existing.completed, updatedAt: Date.now() });
-      return { tasks: next };
-    }),
+    set((state) => ({
+      tasks: state.tasks.map((t) =>
+        t.id === id ? { ...t, completed: !t.completed } : t
+      ),
+    })),
 
-  getTask: (id) => get().tasks.get(id),
+  getTask: (id) => get().tasks.find((t) => t.id === id),
 }));
