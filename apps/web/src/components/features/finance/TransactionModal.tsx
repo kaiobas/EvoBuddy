@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Plus, X } from "lucide-react";
 import {
   financeApi,
@@ -108,7 +109,7 @@ export function TransactionModal({ onCreated }: TransactionModalProps) {
   const inputClass =
     "w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-2.5 text-sm text-ink outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100 dark:border-border-dark dark:bg-neutral-800 dark:text-white";
 
-  return (
+  return createPortal(
     <>
       {/* Floating action button */}
       <button
@@ -247,6 +248,7 @@ export function TransactionModal({ onCreated }: TransactionModalProps) {
           </form>
         </div>
       )}
-    </>
+    </>,
+    document.body
   );
 }
