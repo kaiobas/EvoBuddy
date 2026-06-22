@@ -175,10 +175,8 @@ export function TransactionModal({ onCreated }: TransactionModalProps) {
 
             {/* Amount */}
             <input
-              type="number"
+              type="text"
               inputMode="decimal"
-              min="0.01"
-              step="0.01"
               placeholder="0,00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}

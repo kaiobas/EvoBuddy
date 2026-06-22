@@ -33,7 +33,7 @@ export function GoalsPage() {
   // Form state
   const [newName, setNewName] = useState("");
   const [newType, setNewType] = useState<GoalType>("savings");
-  const [newTargetAmount, setNewTargetAmount] = useState<number>(0);
+  const [newTargetAmount, setNewTargetAmount] = useState("");
   const [newCategoryId, setNewCategoryId] = useState("");
   const [newDeadline, setNewDeadline] = useState("");
 
@@ -65,7 +65,7 @@ export function GoalsPage() {
   function resetForm() {
     setNewName("");
     setNewType("savings");
-    setNewTargetAmount(0);
+    setNewTargetAmount("");
     setNewCategoryId("");
     setNewDeadline("");
   }
@@ -82,7 +82,7 @@ export function GoalsPage() {
       const created = await financeApi.goals.create({
         name: newName.trim(),
         type: newType,
-        target_amount: newTargetAmount,
+        target_amount: parseFloat(newTargetAmount.replace(",", ".")) || 0,
         ...(newCategoryId ? { category_id: newCategoryId } : {}),
         ...(newType === "savings" && newDeadline ? { deadline: newDeadline } : {}),
         active: true,
@@ -204,12 +204,11 @@ export function GoalsPage() {
             </select>
             {/* Target amount */}
             <input
-              type="number"
-              placeholder="Valor alvo"
+              type="text"
+              inputMode="decimal"
+              placeholder="0,00"
               value={newTargetAmount}
-              onChange={(e) => setNewTargetAmount(Number(e.target.value))}
-              step="0.01"
-              min="0"
+              onChange={(e) => setNewTargetAmount(e.target.value)}
               required
               className="w-40 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-2.5 text-sm text-ink outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100 dark:border-border-dark dark:bg-surface-dark dark:text-neutral-100 dark:focus:border-brand-500"
             />

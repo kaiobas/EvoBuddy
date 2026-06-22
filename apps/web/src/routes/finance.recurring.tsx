@@ -55,7 +55,7 @@ export function RecurringPage() {
   // Form state
   const [newDescription, setNewDescription] = useState("");
   const [newType, setNewType] = useState<TransactionType>("expense");
-  const [newAmount, setNewAmount] = useState<number>(0);
+  const [newAmount, setNewAmount] = useState("");
   const [newFrequency, setNewFrequency] = useState<RecurringFrequency>("monthly");
   const [newNextDate, setNewNextDate] = useState(() => {
     const today = new Date();
@@ -88,7 +88,7 @@ export function RecurringPage() {
   function resetForm() {
     setNewDescription("");
     setNewType("expense");
-    setNewAmount(0);
+    setNewAmount("");
     setNewFrequency("monthly");
     const today = new Date();
     setNewNextDate(today.toISOString().slice(0, 10));
@@ -98,13 +98,14 @@ export function RecurringPage() {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (!newAmount || newAmount <= 0 || !newNextDate) return;
+    const parsedAmount = parseFloat(newAmount.replace(",", "."));
+    if (!parsedAmount || parsedAmount <= 0 || !newNextDate) return;
     setIsCreating(true);
     try {
       const created = await financeApi.recurring.create({
         description: newDescription.trim() || undefined,
         type: newType,
-        amount: newAmount,
+        amount: parsedAmount,
         frequency: newFrequency,
         next_date: newNextDate,
         account_id: newAccountId || undefined,
@@ -230,12 +231,11 @@ export function RecurringPage() {
 
             {/* Amount */}
             <input
-              type="number"
-              placeholder="Valor (R$)"
-              value={newAmount || ""}
-              onChange={(e) => setNewAmount(Number(e.target.value))}
-              step="0.01"
-              min="0.01"
+              type="text"
+              inputMode="decimal"
+              placeholder="0,00"
+              value={newAmount}
+              onChange={(e) => setNewAmount(e.target.value)}
               required
               className={inputClass}
             />
@@ -292,7 +292,7 @@ export function RecurringPage() {
 
           <button
             type="submit"
-            disabled={isCreating || !newAmount || newAmount <= 0 || !newNextDate}
+            disabled={isCreating || !newAmount || !newNextDate}
             className="mt-4 flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-2 text-sm font-medium text-white transition hover:bg-brand-600 active:scale-95 disabled:opacity-60"
           >
             <Plus className="h-4 w-4" />

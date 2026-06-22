@@ -37,7 +37,7 @@ export function AccountsPage() {
   // Form state
   const [newName, setNewName] = useState("");
   const [newType, setNewType] = useState<AccountType>("checking");
-  const [newBalance, setNewBalance] = useState<number>(0);
+  const [newBalance, setNewBalance] = useState("");
   const [newColor, setNewColor] = useState(PRESET_COLORS[0]);
 
   const loadAccounts = useCallback(async () => {
@@ -58,7 +58,7 @@ export function AccountsPage() {
   function resetForm() {
     setNewName("");
     setNewType("checking");
-    setNewBalance(0);
+    setNewBalance("");
     setNewColor(PRESET_COLORS[0]);
   }
 
@@ -70,7 +70,7 @@ export function AccountsPage() {
       const created = await financeApi.accounts.create({
         name: newName.trim(),
         type: newType,
-        balance: newBalance,
+        balance: parseFloat(newBalance.replace(",", ".")) || 0,
         color: newColor,
       });
       setNewlyCreatedId(created.id);
@@ -171,11 +171,11 @@ export function AccountsPage() {
             </select>
             {/* Balance */}
             <input
-              type="number"
-              placeholder="Saldo inicial"
+              type="text"
+              inputMode="decimal"
+              placeholder="0,00"
               value={newBalance}
-              onChange={(e) => setNewBalance(Number(e.target.value))}
-              step="0.01"
+              onChange={(e) => setNewBalance(e.target.value)}
               className="w-40 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-2.5 text-sm text-ink outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100 dark:border-border-dark dark:bg-surface-dark dark:text-neutral-100 dark:focus:border-brand-500"
             />
           </div>
