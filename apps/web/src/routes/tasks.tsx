@@ -1,26 +1,79 @@
 import { useEffect, useState, useCallback } from "react";
+import { Plus, Trash2 } from "lucide-react";
 import { tasksApi, type TaskDTO } from "../lib/api";
+import { useToast } from "../contexts/ToastContext";
+
+function SpringCheckbox({
+  checked,
+  onToggle,
+}: {
+  checked: boolean;
+  onToggle: () => void;
+}) {
+  const [springing, setSpringing] = useState(false);
+
+  function handleClick() {
+    setSpringing(true);
+    onToggle();
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      onAnimationEnd={() => setSpringing(false)}
+      aria-checked={checked}
+      role="checkbox"
+      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-colors min-h-0 min-w-0 ${
+        springing ? "animate-checkbox-spring" : ""
+      } ${
+        checked
+          ? "border-brand-500 bg-brand-500"
+          : "border-neutral-300 bg-white dark:border-neutral-600 dark:bg-neutral-800"
+      }`}
+    >
+      {checked && (
+        <svg
+          viewBox="0 0 12 10"
+          className="h-3 w-3"
+          fill="none"
+          stroke="white"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path
+            d="M1 5l3.5 3.5L11 1"
+            className="animate-check-draw"
+            strokeDasharray="20"
+          />
+        </svg>
+      )}
+    </button>
+  );
+}
+
+type Filter = "all" | "pending" | "done";
 
 export function TasksPage() {
+  const { toast } = useToast();
   const [tasks, setTasks] = useState<TaskDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [newTitle, setNewTitle] = useState("");
-  const [filter, setFilter] = useState<"all" | "pending" | "done">("all");
+  const [filter, setFilter] = useState<Filter>("all");
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
 
   const loadTasks = useCallback(async () => {
     try {
       const data = await tasksApi.list();
       setTasks(data);
-    } catch (err) {
-      console.error("Erro ao carregar tarefas:", err);
+    } catch {
+      toast("Erro ao carregar tarefas.", "error");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [toast]);
 
-  useEffect(() => {
-    loadTasks();
-  }, [loadTasks]);
+  useEffect(() => { loadTasks(); }, [loadTasks]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -28,9 +81,10 @@ export function TasksPage() {
     try {
       await tasksApi.create({ title: newTitle });
       setNewTitle("");
+      toast("Tarefa criada.", "success");
       await loadTasks();
-    } catch (err) {
-      console.error("Erro ao criar tarefa:", err);
+    } catch {
+      toast("Erro ao criar tarefa.", "error");
     }
   }
 
@@ -38,27 +92,42 @@ export function TasksPage() {
     try {
       await tasksApi.toggle(id);
       await loadTasks();
-    } catch (err) {
-      console.error("Erro ao alternar tarefa:", err);
+    } catch {
+      toast("Erro ao atualizar tarefa.", "error");
     }
   }
 
   async function handleDelete(id: string) {
-    try {
-      await tasksApi.remove(id);
-      await loadTasks();
-    } catch (err) {
-      console.error("Erro ao deletar tarefa:", err);
-    }
+    setDeletingIds((prev) => new Set(prev).add(id));
+    setTimeout(async () => {
+      try {
+        await tasksApi.remove(id);
+        toast("Tarefa removida.", "success");
+        await loadTasks();
+      } catch {
+        toast("Erro ao remover tarefa.", "error");
+      }
+      setDeletingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }, 200);
   }
 
-  const filteredTasks = tasks.filter((t) => {
+  const filtered = tasks.filter((t) => {
     if (filter === "pending") return !t.completed;
     if (filter === "done") return t.completed;
     return true;
   });
 
   const pendingCount = tasks.filter((t) => !t.completed).length;
+
+  const filterLabels: { key: Filter; label: string }[] = [
+    { key: "all",     label: "Todas"     },
+    { key: "pending", label: "Pendentes" },
+    { key: "done",    label: "Concluídas"},
+  ];
 
   if (loading) {
     return (
@@ -70,113 +139,100 @@ export function TasksPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
+      {/* Header */}
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="font-display text-2xl font-bold text-ink dark:text-neutral-100">
           Tarefas
         </h1>
         {pendingCount > 0 && (
-          <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+          <span className="rounded-full bg-peach-50 px-3 py-1 text-xs font-medium text-peach-600 dark:bg-peach-700/20 dark:text-peach-300">
             {pendingCount} pendente{pendingCount !== 1 ? "s" : ""}
           </span>
         )}
       </div>
 
-      {/* Formulário de criação */}
-      <form onSubmit={handleCreate} className="mt-6 flex gap-2">
+      {/* Formulário */}
+      <form
+        onSubmit={handleCreate}
+        className="mb-6 flex gap-3 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-border-dark dark:bg-card-dark"
+      >
         <input
           type="text"
           placeholder="Nova tarefa..."
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
-          className="flex-1 rounded-lg border border-neutral-300 px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-neutral-700 dark:bg-neutral-800"
+          className="flex-1 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-2.5 text-sm text-ink outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100 dark:border-border-dark dark:bg-surface-dark dark:text-neutral-100"
         />
         <button
           type="submit"
-          className="rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-brand-600"
+          className="flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-600 active:scale-95"
         >
-          Adicionar
+          <Plus className="h-4 w-4" />
+          <span className="hidden sm:inline">Adicionar</span>
         </button>
       </form>
 
       {/* Filtros */}
-      <div className="mt-4 flex gap-2">
-        {(["all", "pending", "done"] as const).map((f) => (
+      <div className="mb-4 flex gap-2">
+        {filterLabels.map(({ key, label }) => (
           <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-              filter === f
+            key={key}
+            onClick={() => setFilter(key)}
+            className={`rounded-xl px-4 py-1.5 text-sm font-medium transition min-h-0 min-w-0 ${
+              filter === key
                 ? "bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300"
-                : "text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
+                : "text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800/60"
             }`}
           >
-            {f === "all" ? "Todas" : f === "pending" ? "Pendentes" : "Concluídas"}
+            {label}
           </button>
         ))}
       </div>
 
-      {/* Lista de tarefas */}
-      {filteredTasks.length === 0 ? (
-        <div className="mt-8 text-center text-neutral-500 dark:text-neutral-400">
-          {tasks.length === 0
-            ? "Nenhuma tarefa ainda. Adicione a primeira acima!"
-            : "Nenhuma tarefa nesse filtro."}
-        </div>
+      {/* Lista */}
+      {filtered.length === 0 ? (
+        <p className="text-center text-sm text-neutral-500 dark:text-neutral-400 py-8">
+          {filter === "done"
+            ? "Nenhuma tarefa concluída ainda."
+            : filter === "pending"
+            ? "Nenhuma tarefa pendente."
+            : "Nenhuma tarefa ainda. Crie a primeira acima."}
+        </p>
       ) : (
-        <div className="mt-4 space-y-1">
-          {filteredTasks.map((task) => (
-            <div
+        <ul className="flex flex-col gap-2">
+          {filtered.map((task, i) => (
+            <li
               key={task.id}
-              className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3 transition hover:border-neutral-300 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-700"
+              style={{ animationDelay: `${Math.min(i, 8) * 50}ms` }}
+              className={`flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white px-4 py-3 shadow-sm transition-all dark:border-border-dark dark:bg-card-dark ${
+                deletingIds.has(task.id)
+                  ? "animate-slide-out"
+                  : "animate-card-enter hover:-translate-y-0.5 hover:shadow-md"
+              }`}
             >
-              {/* Checkbox */}
-              <button
-                onClick={() => handleToggle(task.id)}
-                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition ${
+              <SpringCheckbox
+                checked={task.completed}
+                onToggle={() => handleToggle(task.id)}
+              />
+              <span
+                className={`flex-1 text-sm transition-colors relative ${
                   task.completed
-                    ? "border-green-500 bg-green-500 text-white"
-                    : "border-neutral-400 hover:border-brand-500 dark:border-neutral-600"
+                    ? "text-neutral-400 dark:text-neutral-500 animate-strikethrough"
+                    : "text-ink dark:text-neutral-200"
                 }`}
-                aria-label={task.completed ? "Desmarcar" : "Concluir"}
               >
-                {task.completed && (
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                  </svg>
-                )}
-              </button>
-
-              {/* Conteúdo */}
-              <div className="min-w-0 flex-1">
-                <p
-                  className={`text-sm ${
-                    task.completed
-                      ? "text-neutral-400 line-through dark:text-neutral-500"
-                      : "text-neutral-900 dark:text-neutral-100"
-                  }`}
-                >
-                  {task.title}
-                </p>
-                {task.description && (
-                  <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-500">
-                    {task.description}
-                  </p>
-                )}
-              </div>
-
-              {/* Delete */}
+                {task.title}
+              </span>
               <button
                 onClick={() => handleDelete(task.id)}
-                className="shrink-0 rounded-lg p-1.5 text-neutral-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20"
-                aria-label="Deletar"
+                className="rounded-xl p-1.5 text-neutral-400 opacity-0 transition hover:text-red-500 group-hover:opacity-100 focus:opacity-100 min-h-0 min-w-0 hover:opacity-100"
+                aria-label="Remover tarefa"
               >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                </svg>
+                <Trash2 className="h-4 w-4" />
               </button>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </div>
   );
