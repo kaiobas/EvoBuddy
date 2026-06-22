@@ -75,9 +75,7 @@ export function Layout() {
       >
         {/* Logo */}
         <div className="flex h-16 items-center justify-between border-b border-neutral-200 px-6 dark:border-border-dark">
-          <span className="font-display text-xl font-bold text-brand-500">
-            EvoBuddy
-          </span>
+          <img src="/logo.png" alt="EvoBuddy" className="h-7 w-auto" />
           <button
             className="text-neutral-500 hover:text-neutral-700 lg:hidden min-h-0 min-w-0 p-1"
             onClick={() => setDrawerOpen(false)}
