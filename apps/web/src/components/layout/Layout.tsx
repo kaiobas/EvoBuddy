@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   FileText,
@@ -24,6 +24,7 @@ export function Layout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { user, signOut } = useAuthStore();
   const { theme, setTheme } = useTheme();
+  const location = useLocation();
 
   function cycleTheme() {
     const cycle: Record<string, "dark" | "system" | "light"> = {
@@ -152,7 +153,9 @@ export function Layout() {
         </header>
 
         <main className="flex-1 overflow-y-auto">
-          <Outlet />
+          <div key={location.key} className="animate-pop-in">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

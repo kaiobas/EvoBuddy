@@ -42,9 +42,11 @@ export function ToastContainer({
           <div
             key={t.id}
             role="alert"
-            aria-live="polite"
+            tabIndex={0}
             onMouseEnter={() => onMouseEnter(t.id)}
             onMouseLeave={() => onMouseLeave(t.id)}
+            onFocus={() => onMouseEnter(t.id)}
+            onBlur={() => onMouseLeave(t.id)}
             className={`flex items-center gap-3 rounded-xl px-4 py-3 shadow-lg min-w-[260px] max-w-sm ${classes} ${
               t.exiting ? "animate-toast-exit" : "animate-toast-enter"
             }`}

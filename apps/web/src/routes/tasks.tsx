@@ -13,7 +13,7 @@ function SpringCheckbox({
   const [springing, setSpringing] = useState(false);
 
   function handleClick() {
-    setSpringing(true);
+    if (!checked) setSpringing(true);
     onToggle();
   }
 
@@ -223,6 +223,11 @@ export function TasksPage() {
                 }`}
               >
                 {task.title}
+                {task.description && (
+                  <span className="text-xs text-neutral-400 dark:text-neutral-500 mt-0.5 block truncate max-w-[200px]">
+                    {task.description}
+                  </span>
+                )}
               </span>
               <button
                 onClick={() => handleDelete(task.id)}
