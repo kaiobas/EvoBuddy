@@ -10,6 +10,17 @@ const router = Router();
 // Todas as rotas exigem autenticação
 router.use(authMiddleware);
 
+async function computeAccountBalance(userId: string, accountId: string, initialBalance: number): Promise<number> {
+  const { data } = await supabaseAdmin!
+    .from("transactions")
+    .select("type, amount")
+    .eq("user_id", userId)
+    .eq("account_id", accountId)
+  if (!data) return initialBalance
+  const delta = data.reduce((sum, t) => sum + (t.type === "income" ? t.amount : -t.amount), 0)
+  return initialBalance + delta
+}
+
 /**
  * POST /api/finance/accounts
  * Criar nova conta financeira.
@@ -61,7 +72,13 @@ router.get("/", async (req, res, next) => {
       .order("created_at", { ascending: false });
 
     if (error) throw new AppError(error.message, 500);
-    res.json(data);
+    const accountsWithBalance = await Promise.all(
+      (data ?? []).map(async (a) => ({
+        ...a,
+        balance: await computeAccountBalance(req.user!.id, a.id, a.balance),
+      }))
+    )
+    res.json(accountsWithBalance);
   } catch (err) {
     next(err);
   }
@@ -83,7 +100,8 @@ router.get("/:id", async (req, res, next) => {
     if (error || !data) {
       throw new AppError("Conta não encontrada", 404);
     }
-    res.json(data);
+    const liveBalance = await computeAccountBalance(req.user!.id, data.id, data.balance);
+    res.json({ ...data, balance: liveBalance });
   } catch (err) {
     next(err);
   }

@@ -50,13 +50,13 @@ function toISODate(date: Date): string {
 const MONTH_NAMES_SHORT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 const DEFAULT_WIDGETS: DashboardWidget[] = [
-  { key: "balance-summary", enabled: true, order: 1 },
-  { key: "month-cashflow", enabled: true, order: 2 },
-  { key: "top-categories", enabled: true, order: 3 },
-  { key: "recent-transactions", enabled: true, order: 4 },
-  { key: "goals-progress", enabled: true, order: 5 },
-  { key: "balance-chart", enabled: true, order: 6 },
-  { key: "category-pie", enabled: true, order: 7 },
+  { key: "balance-summary",     enabled: true, order: 0 },
+  { key: "month-cashflow",      enabled: true, order: 1 },
+  { key: "top-categories",      enabled: true, order: 2 },
+  { key: "recent-transactions", enabled: true, order: 3 },
+  { key: "goals-progress",      enabled: true, order: 4 },
+  { key: "balance-chart",       enabled: true, order: 5 },
+  { key: "category-pie",        enabled: true, order: 6 },
 ];
 
 const WIDGET_LABELS: Record<string, string> = {
@@ -237,16 +237,16 @@ function TopCategoriesWidget({
 // ─── Widget 4: Recent Transactions ───────────────────────────
 
 function RecentTransactionsWidget({
-  transactions,
+  chartTransactions,
   categories,
   balanceVisible,
 }: {
-  transactions: TransactionDTO[];
+  chartTransactions: TransactionDTO[];
   categories: CategoryDTO[];
   balanceVisible: boolean;
 }) {
   const catMap = new Map(categories.map((c) => [c.id, c]));
-  const recent = [...transactions]
+  const recent = [...chartTransactions]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5);
 
@@ -353,27 +353,27 @@ function BalanceChartWidget({
   balanceVisible: boolean;
 }) {
   const today = new Date();
-  const chartData = Array.from({ length: 6 }, (_, i) => {
+  const months = Array.from({ length: 6 }, (_, i) => {
     const d = new Date(today.getFullYear(), today.getMonth() - (5 - i), 1);
-    const year = d.getFullYear();
-    const month = d.getMonth();
-    const monthLabel = MONTH_NAMES_SHORT[month];
+    return { year: d.getFullYear(), month: d.getMonth(), label: MONTH_NAMES_SHORT[d.getMonth()] };
+  });
 
-    const monthIncome = chartTransactions
-      .filter((t) => {
-        const td = new Date(t.date);
-        return td.getFullYear() === year && td.getMonth() === month && t.type === "income";
-      })
-      .reduce((s, t) => s + t.amount, 0);
+  const monthlyTotals: Record<string, { income: number; expense: number }> = {};
+  for (const t of chartTransactions) {
+    const td = new Date(t.date);
+    const key = `${td.getFullYear()}-${td.getMonth()}`;
+    if (!monthlyTotals[key]) monthlyTotals[key] = { income: 0, expense: 0 };
+    if (t.type === "income") monthlyTotals[key].income += t.amount;
+    else monthlyTotals[key].expense += t.amount;
+  }
 
-    const monthExpense = chartTransactions
-      .filter((t) => {
-        const td = new Date(t.date);
-        return td.getFullYear() === year && td.getMonth() === month && t.type === "expense";
-      })
-      .reduce((s, t) => s + t.amount, 0);
-
-    return { month: monthLabel, saldo: monthIncome - monthExpense };
+  let running = 0;
+  const chartData = months.map(({ year, month, label }) => {
+    const key = `${year}-${month}`;
+    const income = monthlyTotals[key]?.income ?? 0;
+    const expense = monthlyTotals[key]?.expense ?? 0;
+    running += income - expense;
+    return { month: label, saldo: running };
   });
 
   return (
@@ -674,7 +674,7 @@ export function FinanceDashboard() {
       case "recent-transactions":
         return (
           <RecentTransactionsWidget
-            transactions={transactions}
+            chartTransactions={chartTransactions}
             categories={categories}
             balanceVisible={balanceVisible}
           />
