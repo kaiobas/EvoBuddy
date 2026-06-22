@@ -48,6 +48,7 @@ CMD ["node", "dist/index.js"]
 FROM nginx:alpine AS web
 
 COPY --from=builder /app/web-deploy/dist /usr/share/nginx/html
+RUN chmod -R 644 /usr/share/nginx/html && chmod -R +X /usr/share/nginx/html
 COPY deploy/nginx/default.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
