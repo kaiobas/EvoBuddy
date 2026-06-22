@@ -8,6 +8,12 @@ import { AuthCallbackPage } from "./routes/auth.callback";
 import { DashboardPage } from "./routes/dashboard";
 import { NotesPage } from "./routes/notes";
 import { TasksPage } from "./routes/tasks";
+import { FinanceDashboard } from "./routes/finance";
+import { TransactionsPage } from "./routes/finance.transactions";
+import { AccountsPage } from "./routes/finance.accounts";
+import { CategoriesPage } from "./routes/finance.categories";
+import { GoalsPage } from "./routes/finance.goals";
+import { RecurringPage } from "./routes/finance.recurring";
 
 function App() {
   return (
@@ -26,6 +32,12 @@ function App() {
             <Route index element={<DashboardPage />} />
             <Route path="notes" element={<NotesPage />} />
             <Route path="tasks" element={<TasksPage />} />
+            <Route path="finance" element={<FinanceDashboard />} />
+            <Route path="finance/transactions" element={<TransactionsPage />} />
+            <Route path="finance/accounts" element={<AccountsPage />} />
+            <Route path="finance/categories" element={<CategoriesPage />} />
+            <Route path="finance/goals" element={<GoalsPage />} />
+            <Route path="finance/recurring" element={<RecurringPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

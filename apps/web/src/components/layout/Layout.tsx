@@ -10,6 +10,14 @@ import {
   Sun,
   Moon,
   Monitor,
+  Wallet,
+  ChevronDown,
+  ChevronRight,
+  ArrowLeftRight,
+  Landmark,
+  Tag,
+  Target,
+  RefreshCw,
 } from "lucide-react";
 import { useAuthStore } from "../../stores/authStore";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -20,11 +28,23 @@ const navItems = [
   { to: "/tasks",  label: "Tarefas",   icon: CheckSquare     },
 ];
 
+const financeSubItems = [
+  { to: "/finance",             label: "Visão Geral",  icon: LayoutDashboard  },
+  { to: "/finance/transactions",label: "Transações",   icon: ArrowLeftRight   },
+  { to: "/finance/accounts",    label: "Contas",       icon: Landmark         },
+  { to: "/finance/categories",  label: "Categorias",   icon: Tag              },
+  { to: "/finance/goals",       label: "Metas",        icon: Target           },
+  { to: "/finance/recurring",   label: "Recorrências", icon: RefreshCw        },
+];
+
 export function Layout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { user, signOut } = useAuthStore();
   const { theme, setTheme } = useTheme();
   const location = useLocation();
+
+  const isInFinance = location.pathname.startsWith("/finance");
+  const [financeOpen, setFinanceOpen] = useState(isInFinance);
 
   function cycleTheme() {
     const cycle: Record<string, "dark" | "system" | "light"> = {
@@ -87,6 +107,46 @@ export function Layout() {
               {item.label}
             </NavLink>
           ))}
+
+          {/* Finance collapsible section */}
+          <button
+            onClick={() => setFinanceOpen((prev) => !prev)}
+            className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+              isInFinance
+                ? "bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300"
+                : "text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800/60"
+            }`}
+          >
+            <Wallet className="h-5 w-5 shrink-0" />
+            <span className="flex-1 text-left">Finanças</span>
+            {financeOpen
+              ? <ChevronDown className="h-4 w-4 shrink-0" />
+              : <ChevronRight className="h-4 w-4 shrink-0" />
+            }
+          </button>
+
+          {financeOpen && (
+            <div className="space-y-1">
+              {financeSubItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.to === "/finance"}
+                  onClick={() => setDrawerOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 rounded-xl pl-9 pr-3 py-2.5 text-sm font-medium transition-colors ${
+                      isActive
+                        ? "bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300"
+                        : "text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800/60"
+                    }`
+                  }
+                >
+                  <item.icon className="h-4 w-4 shrink-0" />
+                  {item.label}
+                </NavLink>
+              ))}
+            </div>
+          )}
         </nav>
 
         {/* User + theme toggle */}
