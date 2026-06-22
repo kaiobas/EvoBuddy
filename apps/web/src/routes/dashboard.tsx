@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { FileText, CheckSquare, Clock } from "lucide-react";
+import { FileText, CheckSquare, Clock, ArrowRight, StickyNote } from "lucide-react";
 import { useAuthStore } from "../stores/authStore";
-import { notesApi, tasksApi } from "../lib/api";
+import { notesApi, tasksApi, type NoteDTO, type TaskDTO } from "../lib/api";
 
 interface DashboardSummary {
   notesCount: number;
@@ -72,6 +72,8 @@ const cards = (data: DashboardSummary) => [
 export function DashboardPage() {
   const { user } = useAuthStore();
   const [data, setData] = useState<DashboardSummary | null>(null);
+  const [lastNote, setLastNote] = useState<NoteDTO | null>(null);
+  const [pendingTasks, setPendingTasks] = useState<TaskDTO[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -86,6 +88,8 @@ export function DashboardPage() {
           tasksTotal: tasks.length,
           tasksPending: tasks.filter((t) => !t.completed).length,
         });
+        setLastNote(notes[0] ?? null);
+        setPendingTasks(tasks.filter((t) => !t.completed).slice(0, 3));
       } catch (err) {
         console.error("Erro ao carregar dashboard:", err);
       } finally {
@@ -158,6 +162,77 @@ export function DashboardPage() {
             Nova tarefa
           </Link>
         </div>
+      </div>
+
+      {/* Cards interativos */}
+      <div className="mt-8 grid gap-4 sm:grid-cols-2">
+
+        {/* Última anotação */}
+        <Link
+          to="/notes"
+          style={{ animationDelay: "150ms" }}
+          className="animate-card-enter group flex flex-col gap-3 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-border-dark dark:bg-card-dark"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <StickyNote className="h-4 w-4 text-brand-500" />
+              <span className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+                Última anotação
+              </span>
+            </div>
+            <ArrowRight className="h-4 w-4 text-neutral-400 transition group-hover:translate-x-0.5 group-hover:text-brand-500" />
+          </div>
+          {lastNote ? (
+            <div>
+              <p className="font-display font-bold text-ink line-clamp-1 dark:text-neutral-100">
+                {lastNote.title || "(sem título)"}
+              </p>
+              {lastNote.content && (
+                <p className="mt-1 text-sm text-neutral-500 line-clamp-2 dark:text-neutral-400">
+                  {lastNote.content}
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-neutral-400 dark:text-neutral-500">
+              Nenhuma anotação ainda. Crie a primeira!
+            </p>
+          )}
+        </Link>
+
+        {/* Tarefas pendentes */}
+        <Link
+          to="/tasks"
+          style={{ animationDelay: "200ms" }}
+          className="animate-card-enter group flex flex-col gap-3 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-border-dark dark:bg-card-dark"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CheckSquare className="h-4 w-4 text-peach-500" />
+              <span className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+                Tarefas pendentes
+              </span>
+            </div>
+            <ArrowRight className="h-4 w-4 text-neutral-400 transition group-hover:translate-x-0.5 group-hover:text-peach-500" />
+          </div>
+          {pendingTasks.length > 0 ? (
+            <ul className="flex flex-col gap-2">
+              {pendingTasks.map((task) => (
+                <li key={task.id} className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-peach-500" />
+                  <span className="text-sm text-ink line-clamp-1 dark:text-neutral-200">
+                    {task.title}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-neutral-400 dark:text-neutral-500">
+              Nenhuma tarefa pendente.
+            </p>
+          )}
+        </Link>
+
       </div>
     </div>
   );
