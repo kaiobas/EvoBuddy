@@ -123,28 +123,96 @@ export function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      {/* Cards informativos — destaque principal */}
+      <div className="grid gap-4 sm:grid-cols-2">
+
+        {/* Última anotação */}
+        <Link
+          to="/notes"
+          style={{ animationDelay: "50ms" }}
+          className="animate-card-enter group flex flex-col gap-4 rounded-2xl border border-neutral-200 bg-white p-7 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-border-dark dark:bg-card-dark"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <StickyNote className="h-5 w-5 text-brand-500" />
+              <span className="font-display text-base font-bold text-neutral-700 dark:text-neutral-200">
+                Última anotação
+              </span>
+            </div>
+            <ArrowRight className="h-4 w-4 text-neutral-400 transition group-hover:translate-x-0.5 group-hover:text-brand-500" />
+          </div>
+          {lastNote ? (
+            <div className="flex flex-col gap-1">
+              <p className="font-display text-lg font-bold text-ink line-clamp-1 dark:text-neutral-100">
+                {lastNote.title || "(sem título)"}
+              </p>
+              {lastNote.content && (
+                <p className="text-sm text-neutral-500 line-clamp-3 dark:text-neutral-400 leading-relaxed">
+                  {lastNote.content}
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-neutral-400 dark:text-neutral-500">
+              Nenhuma anotação ainda. Crie a primeira!
+            </p>
+          )}
+        </Link>
+
+        {/* Tarefas pendentes */}
+        <Link
+          to="/tasks"
+          style={{ animationDelay: "100ms" }}
+          className="animate-card-enter group flex flex-col gap-4 rounded-2xl border border-neutral-200 bg-white p-7 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-border-dark dark:bg-card-dark"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CheckSquare className="h-5 w-5 text-peach-500" />
+              <span className="font-display text-base font-bold text-neutral-700 dark:text-neutral-200">
+                Tarefas pendentes
+              </span>
+            </div>
+            <ArrowRight className="h-4 w-4 text-neutral-400 transition group-hover:translate-x-0.5 group-hover:text-peach-500" />
+          </div>
+          {pendingTasks.length > 0 ? (
+            <ul className="flex flex-col gap-3">
+              {pendingTasks.map((task) => (
+                <li key={task.id} className="flex items-center gap-3">
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-peach-500" />
+                  <span className="text-sm font-medium text-ink line-clamp-1 dark:text-neutral-200">
+                    {task.title}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-neutral-400 dark:text-neutral-500">
+              Nenhuma tarefa pendente. 🎉
+            </p>
+          )}
+        </Link>
+
+      </div>
+
+      {/* Cards de resumo — compactos */}
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
         {cards(summary).map((card, i) => (
           <Link
             key={card.label}
             to={card.to}
-            style={{ animationDelay: `${i * 50}ms` }}
-            className="animate-card-enter group flex flex-col gap-3 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-border-dark dark:bg-card-dark"
+            style={{ animationDelay: `${150 + i * 50}ms` }}
+            className="animate-card-enter group flex items-center justify-between rounded-xl border border-neutral-200 bg-white px-5 py-3.5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-border-dark dark:bg-card-dark"
           >
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400">
-                {card.label}
-              </p>
+            <div className="flex items-center gap-2.5">
               <card.icon className="h-4 w-4 text-neutral-400 dark:text-neutral-500" />
+              <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400">{card.label}</p>
             </div>
-            <p className={`text-3xl font-bold ${card.valueClass}`}>
-              {card.value}
-            </p>
+            <p className={`text-xl font-bold ${card.valueClass}`}>{card.value}</p>
           </Link>
         ))}
       </div>
 
-      <div className="mt-8">
+      <div className="mt-6">
         <h2 className="mb-4 text-lg font-semibold text-neutral-800 dark:text-neutral-200">
           Ações rápidas
         </h2>
@@ -162,77 +230,6 @@ export function DashboardPage() {
             Nova tarefa
           </Link>
         </div>
-      </div>
-
-      {/* Cards interativos */}
-      <div className="mt-8 grid gap-4 sm:grid-cols-2">
-
-        {/* Última anotação */}
-        <Link
-          to="/notes"
-          style={{ animationDelay: "150ms" }}
-          className="animate-card-enter group flex flex-col gap-3 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-border-dark dark:bg-card-dark"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <StickyNote className="h-4 w-4 text-brand-500" />
-              <span className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-                Última anotação
-              </span>
-            </div>
-            <ArrowRight className="h-4 w-4 text-neutral-400 transition group-hover:translate-x-0.5 group-hover:text-brand-500" />
-          </div>
-          {lastNote ? (
-            <div>
-              <p className="font-display font-bold text-ink line-clamp-1 dark:text-neutral-100">
-                {lastNote.title || "(sem título)"}
-              </p>
-              {lastNote.content && (
-                <p className="mt-1 text-sm text-neutral-500 line-clamp-2 dark:text-neutral-400">
-                  {lastNote.content}
-                </p>
-              )}
-            </div>
-          ) : (
-            <p className="text-sm text-neutral-400 dark:text-neutral-500">
-              Nenhuma anotação ainda. Crie a primeira!
-            </p>
-          )}
-        </Link>
-
-        {/* Tarefas pendentes */}
-        <Link
-          to="/tasks"
-          style={{ animationDelay: "200ms" }}
-          className="animate-card-enter group flex flex-col gap-3 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-border-dark dark:bg-card-dark"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CheckSquare className="h-4 w-4 text-peach-500" />
-              <span className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-                Tarefas pendentes
-              </span>
-            </div>
-            <ArrowRight className="h-4 w-4 text-neutral-400 transition group-hover:translate-x-0.5 group-hover:text-peach-500" />
-          </div>
-          {pendingTasks.length > 0 ? (
-            <ul className="flex flex-col gap-2">
-              {pendingTasks.map((task) => (
-                <li key={task.id} className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-peach-500" />
-                  <span className="text-sm text-ink line-clamp-1 dark:text-neutral-200">
-                    {task.title}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-neutral-400 dark:text-neutral-500">
-              Nenhuma tarefa pendente.
-            </p>
-          )}
-        </Link>
-
       </div>
     </div>
   );
