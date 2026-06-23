@@ -182,7 +182,7 @@ export function CalendarPage() {
               `${format(start, "dd/MM/yyyy")} – ${format(end, "dd/MM/yyyy")}`,
           }}
           eventPropGetter={eventStyleGetter}
-          views={isMobile ? [Views.MONTH, Views.AGENDA] : [Views.MONTH, Views.WEEK, Views.AGENDA]}
+          views={isMobile ? [Views.MONTH, Views.DAY, Views.AGENDA] : [Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
           onSelectEvent={(ev) => {
             if (ev.resource.type === "event") {
               setEditingEvent(ev.resource.data as CalendarEventDTO);
