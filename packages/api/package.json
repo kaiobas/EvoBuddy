@@ -25,6 +25,7 @@
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "express-rate-limit": "^8.5.2",
+    "googleapis": "^173.0.0",
     "helmet": "^8.2.0",
     "zod": "^3.24.0"
   },
