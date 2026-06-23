@@ -246,3 +246,25 @@ export const calendarApi = {
     remove: (id: string) => request<void>(`/api/calendar/events/${id}`, { method: "DELETE" }),
   },
 };
+
+// ─── Users ───────────────────────────────────────────────────
+
+export interface ProfileDTO {
+  display_name: string | null;
+  email: string | null;
+}
+
+export interface UpdateProfileDTO {
+  display_name?: string;
+}
+
+export const usersApi = {
+  getProfile: () => request<ProfileDTO>("/api/users/me/profile"),
+  updateProfile: (data: UpdateProfileDTO) =>
+    request<ProfileDTO>("/api/users/me/profile", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  deleteAccount: () =>
+    request<void>("/api/users/me", { method: "DELETE" }),
+};
