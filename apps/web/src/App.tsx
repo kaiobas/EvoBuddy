@@ -15,6 +15,7 @@ import { CategoriesPage } from "./routes/finance.categories";
 import { GoalsPage } from "./routes/finance.goals";
 import { RecurringPage } from "./routes/finance.recurring";
 import { CalendarPage } from "./routes/calendar";
+import { SettingsPage } from "./routes/settings";
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
             <Route path="finance/goals" element={<GoalsPage />} />
             <Route path="finance/recurring" element={<RecurringPage />} />
             <Route path="calendar" element={<CalendarPage />} />
+            <Route path="settings" element={<SettingsPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
