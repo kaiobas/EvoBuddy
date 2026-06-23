@@ -205,7 +205,8 @@ export function EventModal({
               role="switch"
               aria-checked={allDay}
               onClick={() => setAllDay((v) => !v)}
-              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2 ${
+              style={{ minWidth: "2.75rem" }}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2 min-h-0 ${
                 allDay ? "bg-brand-500" : "bg-neutral-300 dark:bg-neutral-600"
               }`}
             >
