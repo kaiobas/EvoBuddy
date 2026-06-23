@@ -127,3 +127,20 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* react-big-calendar dark mode */
+.dark .rbc-calendar { color: #e5e7eb; }
+.dark .rbc-toolbar button { color: #e5e7eb; background: transparent; border-color: #2E2840; }
+.dark .rbc-toolbar button:hover { background: #2E2840; }
+.dark .rbc-toolbar button.rbc-active { background: rgba(124,111,205,0.3); color: #a78bfa; }
+.dark .rbc-month-view, .dark .rbc-time-view, .dark .rbc-agenda-view { border-color: #2E2840; }
+.dark .rbc-header { border-color: #2E2840; background: #201C2E; }
+.dark .rbc-day-bg { background: #201C2E; }
+.dark .rbc-day-bg.rbc-today { background: rgba(124,111,205,0.15); }
+.dark .rbc-off-range-bg { background: #16131F; }
+.dark .rbc-date-cell { color: #9ca3af; }
+.dark .rbc-date-cell.rbc-now { color: #a78bfa; font-weight: bold; }
+.dark .rbc-time-slot { border-color: #2E2840; }
+.dark .rbc-timeslot-group { border-color: #2E2840; }
+.dark .rbc-agenda-date-cell, .dark .rbc-agenda-time-cell { color: #9ca3af; border-color: #2E2840; }
+.dark .rbc-agenda-event-cell { border-color: #2E2840; }
