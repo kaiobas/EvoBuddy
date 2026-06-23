@@ -166,6 +166,21 @@ export function CalendarPage() {
           onView={setView}
           date={date}
           onNavigate={setDate}
+          formats={{
+            dateFormat: "dd",
+            dayFormat: "EEE dd/MM",
+            weekdayFormat: "EEE",
+            monthHeaderFormat: "MMMM yyyy",
+            dayHeaderFormat: "EEEE, dd/MM/yyyy",
+            dayRangeHeaderFormat: ({ start, end }) =>
+              `${format(start, "dd/MM")} – ${format(end, "dd/MM/yyyy")}`,
+            agendaDateFormat: "dd/MM/yyyy",
+            agendaTimeFormat: "HH:mm",
+            agendaTimeRangeFormat: ({ start, end }) =>
+              `${format(start, "HH:mm")} – ${format(end, "HH:mm")}`,
+            agendaHeaderFormat: ({ start, end }) =>
+              `${format(start, "dd/MM/yyyy")} – ${format(end, "dd/MM/yyyy")}`,
+          }}
           eventPropGetter={eventStyleGetter}
           views={isMobile ? [Views.MONTH, Views.AGENDA] : [Views.MONTH, Views.WEEK, Views.AGENDA]}
           onSelectEvent={(ev) => {
