@@ -2,7 +2,7 @@ import { Router } from "express";
 import { authMiddleware } from "../middleware/auth.js";
 import { AppError } from "../middleware/error.js";
 import { supabaseAdmin } from "../lib/supabase.js";
-import { encrypt } from "../lib/crypto.js";
+import { encrypt, decrypt } from "../lib/crypto.js";
 import {
   createOAuth2Client,
   getAuthUrl,
@@ -131,7 +131,6 @@ router.delete("/disconnect", authMiddleware, async (req, res, next) => {
       // Tenta revogar o token no Google (best-effort, não falha se der erro)
       try {
         const oauth2Client = createOAuth2Client();
-        const { decrypt } = await import("../lib/crypto.js");
         await oauth2Client.revokeToken(decrypt(data.access_token as string));
       } catch {
         // Revogação é best-effort
