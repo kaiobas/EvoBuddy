@@ -4,6 +4,7 @@ import healthRouter from "./routes/health.js";
 import notesRouter from "./routes/notes.js";
 import tasksRouter from "./routes/tasks.js";
 import financeRouter from "./routes/finance/index.js";
+import calendarRouter from "./routes/calendar/index.js";
 
 const router: Router = Router();
 
@@ -15,5 +16,6 @@ router.use("/api/health", healthRouter);
 router.use("/api/notes", notesRouter);
 router.use("/api/tasks", tasksRouter);
 router.use("/api/finance", financeRouter);
+router.use("/api/calendar", calendarRouter);
 
 export default router;
