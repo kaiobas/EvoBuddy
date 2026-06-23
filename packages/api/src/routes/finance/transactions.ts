@@ -38,46 +38,62 @@ function advanceDate(dateStr: string, frequency: string): string {
  * Chamado automaticamente no GET / antes de listar transações.
  */
 async function processRecurring(userId: string): Promise<void> {
+  const today = new Date().toISOString().slice(0, 10);
+
   // 1. Buscar regras ativas com next_date <= hoje
   const { data: rules, error: fetchError } = await supabaseAdmin!
     .from("recurring_rules")
     .select("*")
     .eq("user_id", userId)
     .eq("active", true)
-    .lte("next_date", new Date().toISOString().slice(0, 10));
+    .lte("next_date", today);
 
   if (fetchError || !rules || rules.length === 0) return;
 
   for (const rule of rules) {
-    // 2. Inserir transação para a regra
-    const ulid = crypto.randomUUID().replace(/-/g, "").slice(0, 26);
-    const { error: insertError } = await supabaseAdmin!
-      .from("transactions")
-      .insert({
-        id: ulid,
-        user_id: userId,
-        account_id: rule.account_id ?? null,
-        category_id: rule.category_id ?? null,
-        goal_id: null,
-        recurring_id: rule.id,
-        type: rule.type,
-        amount: rule.amount,
-        description: rule.description ?? "",
-        date: rule.next_date,
-      });
+    let currentDate = rule.next_date as string;
 
-    if (insertError) {
-      // Não interrompe o fluxo por falha em uma regra individual
-      console.error(`processRecurring: falha ao inserir transação para regra ${rule.id}:`, insertError.message);
-      continue;
+    // Processa TODOS os períodos vencidos de uma vez (não apenas um por chamada)
+    while (currentDate <= today) {
+      // Deduplicação: evita duplicata em caso de requests concorrentes
+      const { data: existing } = await supabaseAdmin!
+        .from("transactions")
+        .select("id")
+        .eq("recurring_id", rule.id)
+        .eq("date", currentDate)
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (!existing) {
+        const ulid = crypto.randomUUID().replace(/-/g, "").slice(0, 26);
+        const { error: insertError } = await supabaseAdmin!
+          .from("transactions")
+          .insert({
+            id: ulid,
+            user_id: userId,
+            account_id: rule.account_id ?? null,
+            category_id: rule.category_id ?? null,
+            goal_id: null,
+            recurring_id: rule.id,
+            type: rule.type,
+            amount: rule.amount,
+            description: rule.description ?? "",
+            date: currentDate,
+          });
+
+        if (insertError) {
+          console.error(`processRecurring: falha ao inserir transação para regra ${rule.id}:`, insertError.message);
+          break;
+        }
+      }
+
+      currentDate = advanceDate(currentDate, rule.frequency as string);
     }
 
-    // 3. Avançar next_date
-    const newDate = advanceDate(rule.next_date as string, rule.frequency as string);
-
+    // Atualiza next_date para o próximo período futuro
     await supabaseAdmin!
       .from("recurring_rules")
-      .update({ next_date: newDate, updated_at: new Date().toISOString() })
+      .update({ next_date: currentDate, updated_at: new Date().toISOString() })
       .eq("id", rule.id);
   }
 }
