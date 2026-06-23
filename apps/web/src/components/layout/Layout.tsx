@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -19,15 +19,17 @@ import {
   Tag,
   Target,
   RefreshCw,
+  Settings,
 } from "lucide-react";
 import { useAuthStore } from "../../stores/authStore";
 import { useTheme } from "../../contexts/ThemeContext";
+import { useTour } from "../../hooks/useTour";
 
 const navItems = [
-  { to: "/",          label: "Dashboard", icon: LayoutDashboard },
-  { to: "/notes",     label: "Notas",     icon: FileText        },
-  { to: "/tasks",     label: "Tarefas",   icon: CheckSquare     },
-  { to: "/calendar",  label: "Calendário", icon: CalendarDays   },
+  { to: "/",         label: "Dashboard",  icon: LayoutDashboard, tourId: "nav-dashboard" },
+  { to: "/notes",    label: "Notas",      icon: FileText,        tourId: "nav-notes"     },
+  { to: "/tasks",    label: "Tarefas",    icon: CheckSquare,     tourId: "nav-tasks"     },
+  { to: "/calendar", label: "Calendário", icon: CalendarDays,    tourId: "nav-calendar"  },
 ];
 
 const financeSubItems = [
@@ -47,6 +49,15 @@ export function Layout() {
 
   const isInFinance = location.pathname.startsWith("/finance");
   const [financeOpen, setFinanceOpen] = useState(isInFinance);
+
+  const { startTour, hasDoneTour } = useTour();
+
+  useEffect(() => {
+    if (!hasDoneTour) {
+      const timer = setTimeout(() => startTour(), 500);
+      return () => clearTimeout(timer);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function cycleTheme() {
     const cycle: Record<string, "dark" | "system" | "light"> = {
@@ -77,7 +88,7 @@ export function Layout() {
       >
         {/* Logo */}
         <div className="flex h-16 items-center justify-between border-b border-neutral-200 px-6 dark:border-border-dark">
-          <img src="/logo-black.png" alt="EvoBuddy" className="h-28 w-auto dark:hidden" />
+          <img src="/logo-black.png" alt="EvoBuddy" className="h-28 w-auto dark:hidden" data-tour="logo" />
           <img src="/logo-white.png" alt="EvoBuddy" className="h-28 w-auto hidden dark:block" />
           <button
             className="text-neutral-500 hover:text-neutral-700 lg:hidden min-h-0 min-w-0 p-1"
@@ -95,6 +106,7 @@ export function Layout() {
               key={item.to}
               to={item.to}
               end={item.to === "/"}
+              data-tour={item.tourId}
               onClick={() => setDrawerOpen(false)}
               className={({ isActive }) =>
                 `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
@@ -111,6 +123,7 @@ export function Layout() {
 
           {/* Finance collapsible section */}
           <button
+            data-tour="nav-finance"
             onClick={() => setFinanceOpen((prev) => !prev)}
             className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
               isInFinance
@@ -148,6 +161,22 @@ export function Layout() {
               ))}
             </div>
           )}
+
+          <NavLink
+            to="/settings"
+            data-tour="nav-settings"
+            onClick={() => setDrawerOpen(false)}
+            className={({ isActive }) =>
+              `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                isActive
+                  ? "bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300"
+                  : "text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800/60"
+              }`
+            }
+          >
+            <Settings className="h-5 w-5 shrink-0" />
+            Configurações
+          </NavLink>
         </nav>
 
         {/* User + theme toggle */}
@@ -162,6 +191,7 @@ export function Layout() {
               </p>
             </div>
             <button
+              data-tour="theme-toggle"
               onClick={cycleTheme}
               className="rounded-xl p-2 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 dark:hover:bg-neutral-800 min-h-0 min-w-0"
               title={`Tema: ${theme}`}
