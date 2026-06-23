@@ -310,29 +310,31 @@ export function TasksPage() {
       {/* Formulário */}
       <form
         onSubmit={handleCreate}
-        className="mb-6 flex gap-3 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-border-dark dark:bg-card-dark"
+        className="mb-6 flex flex-col gap-2 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-border-dark dark:bg-card-dark"
       >
-        <input
-          type="text"
-          placeholder="Nova tarefa..."
-          value={newTitle}
-          onChange={(e) => setNewTitle(e.target.value)}
-          className="flex-1 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-2.5 text-sm text-ink outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100 dark:border-border-dark dark:bg-surface-dark dark:text-neutral-100"
-        />
+        <div className="flex gap-3">
+          <input
+            type="text"
+            placeholder="Nova tarefa..."
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            className="flex-1 min-w-0 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-2.5 text-sm text-ink outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100 dark:border-border-dark dark:bg-surface-dark dark:text-neutral-100"
+          />
+          <button
+            type="submit"
+            className="flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-600 active:scale-95"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Adicionar</span>
+          </button>
+        </div>
         <input
           type="date"
           value={newDueDate}
           onChange={(e) => setNewDueDate(e.target.value)}
-          className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-2.5 text-sm text-ink outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100 dark:border-border-dark dark:bg-surface-dark dark:text-neutral-100"
+          className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-2.5 text-sm text-ink outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100 dark:border-border-dark dark:bg-surface-dark dark:text-neutral-100"
           aria-label="Prazo (opcional)"
         />
-        <button
-          type="submit"
-          className="flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-600 active:scale-95"
-        >
-          <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">Adicionar</span>
-        </button>
       </form>
 
       {/* Filtros — somente na visão lista */}
