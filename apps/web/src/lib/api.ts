@@ -268,3 +268,19 @@ export const usersApi = {
   deleteAccount: () =>
     request<void>("/api/users/me", { method: "DELETE" }),
 };
+
+// ─── Google Calendar ──────────────────────────────────────────
+
+export interface GoogleStatusDTO {
+  connected: boolean;
+  last_synced_at: string | null;
+  sync_error: string | null;
+}
+
+export const googleApi = {
+  getAuthUrl: () => request<{ url: string }>("/api/google/auth-url"),
+  getStatus: () => request<GoogleStatusDTO>("/api/google/status"),
+  disconnect: () => request<void>("/api/google/disconnect", { method: "DELETE" }),
+  syncNow: () =>
+    request<{ synced_at: string }>("/api/google/sync", { method: "POST" }),
+};

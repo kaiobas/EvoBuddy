@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { User, Palette, Bell, HelpCircle, Shield, Sun, Moon, Monitor } from "lucide-react";
-import { usersApi, type ProfileDTO } from "../lib/api";
+import { User, Palette, Bell, HelpCircle, Shield, Sun, Moon, Monitor, Link2, Unlink, RefreshCw, CheckCircle, AlertCircle } from "lucide-react";
+import { usersApi, googleApi, type ProfileDTO, type GoogleStatusDTO } from "../lib/api";
 import { useTheme } from "../contexts/ThemeContext";
 import { useToast } from "../contexts/ToastContext";
 import { useAuthStore } from "../stores/authStore";
@@ -20,6 +20,9 @@ export function SettingsPage() {
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [sendingReset, setSendingReset] = useState(false);
+  const [googleStatus, setGoogleStatus] = useState<GoogleStatusDTO | null>(null);
+  const [loadingGoogle, setLoadingGoogle] = useState(true);
+  const [disconnecting, setDisconnecting] = useState(false);
 
   useEffect(() => {
     usersApi.getProfile().then((data) => {
@@ -28,6 +31,32 @@ export function SettingsPage() {
     }).catch(() => {
       toast("Erro ao carregar perfil.", "error");
     });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    // Detecta retorno do OAuth
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("google") === "connected") {
+      toast("Google Calendar conectado com sucesso.", "success");
+      window.history.replaceState({}, "", "/settings");
+    } else if (params.get("google") === "error") {
+      const msg = params.get("message") || "Erro ao conectar Google Calendar.";
+      toast(msg, "error");
+      window.history.replaceState({}, "", "/settings");
+    }
+
+    // Carrega status
+    googleApi
+      .getStatus()
+      .then(setGoogleStatus)
+      .catch(() =>
+        setGoogleStatus({
+          connected: false,
+          last_synced_at: null,
+          sync_error: null,
+        })
+      )
+      .finally(() => setLoadingGoogle(false));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSaveProfile(e: React.FormEvent) {
@@ -55,6 +84,32 @@ export function SettingsPage() {
       toast("Erro ao enviar email de redefinição.", "error");
     } finally {
       setSendingReset(false);
+    }
+  }
+
+  async function handleGoogleConnect() {
+    try {
+      const { url } = await googleApi.getAuthUrl();
+      window.location.href = url;
+    } catch {
+      toast("Erro ao iniciar conexão com Google.", "error");
+    }
+  }
+
+  async function handleGoogleDisconnect() {
+    setDisconnecting(true);
+    try {
+      await googleApi.disconnect();
+      setGoogleStatus({
+        connected: false,
+        last_synced_at: null,
+        sync_error: null,
+      });
+      toast("Google Calendar desconectado.", "success");
+    } catch {
+      toast("Erro ao desconectar Google Calendar.", "error");
+    } finally {
+      setDisconnecting(false);
     }
   }
 
@@ -181,6 +236,84 @@ export function SettingsPage() {
               </div>
             ))}
           </div>
+        </section>
+
+        {/* Integrações */}
+        <section className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-border-dark dark:bg-card-dark">
+          <div className="mb-4 flex items-center gap-2">
+            <Link2 className="h-5 w-5 text-brand-500" />
+            <h2 className="font-display text-base font-bold text-ink dark:text-neutral-100">Integrações</h2>
+          </div>
+
+          {loadingGoogle ? (
+            <div className="flex items-center gap-2 text-sm text-neutral-500">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+              Verificando conexão...
+            </div>
+          ) : !googleStatus?.connected ? (
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Google Calendar</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400">Sincronize eventos com sua conta Google</p>
+              </div>
+              <button
+                onClick={handleGoogleConnect}
+                className="flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-600 active:scale-95"
+              >
+                <Link2 className="h-4 w-4" />
+                Conectar
+              </button>
+            </div>
+          ) : googleStatus.sync_error ? (
+            <div className="space-y-3">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-500" />
+                <div>
+                  <p className="text-sm font-medium text-red-600 dark:text-red-400">Google Calendar — Erro</p>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">{googleStatus.sync_error}</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleGoogleConnect}
+                  className="flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-600 active:scale-95"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Reconectar
+                </button>
+                <button
+                  onClick={handleGoogleDisconnect}
+                  disabled={disconnecting}
+                  className="flex items-center gap-2 rounded-xl border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-600 transition hover:bg-neutral-50 disabled:opacity-60 dark:border-border-dark dark:text-neutral-400 dark:hover:bg-neutral-800"
+                >
+                  <Unlink className="h-4 w-4" />
+                  Desconectar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <div className="flex items-start gap-3">
+                <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-green-500" />
+                <div>
+                  <p className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Google Calendar</p>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                    {googleStatus.last_synced_at
+                      ? `Último sync: ${new Date(googleStatus.last_synced_at).toLocaleString("pt-BR")}`
+                      : "Conectado — aguardando primeiro sync"}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleGoogleDisconnect}
+                disabled={disconnecting}
+                className="flex items-center gap-2 rounded-xl border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-600 transition hover:bg-neutral-50 disabled:opacity-60 dark:border-border-dark dark:text-neutral-400 dark:hover:bg-neutral-800"
+              >
+                <Unlink className="h-4 w-4" />
+                {disconnecting ? "Desconectando..." : "Desconectar"}
+              </button>
+            </div>
+          )}
         </section>
 
         {/* Tour & Ajuda */}
