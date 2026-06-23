@@ -22,6 +22,7 @@ import {
   type TaskDTO,
 } from "../lib/api";
 import { EventModal } from "../components/features/calendar/EventModal";
+import { useToast } from "../contexts/ToastContext";
 
 const localizer = dateFnsLocalizer({
   format,
@@ -45,35 +46,66 @@ export function CalendarPage() {
   );
   const [defaultDate, setDefaultDate] = useState("");
 
-  const load = useCallback(async () => {
+  const { toast } = useToast();
+
+  const refresh = useCallback(async () => {
     const from = format(startOfMonth(subMonths(date, 1)), "yyyy-MM-dd");
     const to = format(endOfMonth(addMonths(date, 1)), "yyyy-MM-dd");
-    const [evts, cats, tks] = await Promise.all([
-      calendarApi.events.list(from, to),
-      calendarApi.categories.list(),
-      tasksApi.list(),
-    ]);
-    setEvents(evts);
-    setCategories(cats);
-    setTasks(tks.filter((t) => t.due_date));
-  }, [date]);
+    try {
+      const [evts, cats, tks] = await Promise.all([
+        calendarApi.events.list(from, to),
+        calendarApi.categories.list(),
+        tasksApi.list(),
+      ]);
+      setEvents(evts);
+      setCategories(cats);
+      setTasks(tks.filter((t) => t.due_date));
+    } catch {
+      toast("Erro ao carregar eventos.", "error");
+    }
+  }, [date, toast]);
 
   useEffect(() => {
+    let ignore = false;
+    async function load() {
+      const from = format(startOfMonth(subMonths(date, 1)), "yyyy-MM-dd");
+      const to = format(endOfMonth(addMonths(date, 1)), "yyyy-MM-dd");
+      try {
+        const [evts, cats, tks] = await Promise.all([
+          calendarApi.events.list(from, to),
+          calendarApi.categories.list(),
+          tasksApi.list(),
+        ]);
+        if (ignore) return;
+        setEvents(evts);
+        setCategories(cats);
+        setTasks(tks.filter((t) => t.due_date));
+      } catch {
+        if (!ignore) toast("Erro ao carregar eventos.", "error");
+      }
+    }
     load();
-  }, [load]);
+    return () => {
+      ignore = true;
+    };
+  }, [date, toast]);
 
-  // Request notification permission and schedule notifications via SW
+  // Request notification permission (once) and schedule notifications via SW
   useEffect(() => {
-    if (!("Notification" in window)) return;
-    Notification.requestPermission().then((perm) => {
-      if (perm !== "granted") return;
-      navigator.serviceWorker?.ready.then((reg) => {
-        reg.active?.postMessage({
-          type: "SCHEDULE_NOTIFICATIONS",
-          events: events.filter((e) => e.notification_minutes != null),
-        });
+    if (!("Notification" in window) || !navigator.serviceWorker) return;
+    const schedule = (reg: ServiceWorkerRegistration) => {
+      reg.active?.postMessage({
+        type: "SCHEDULE_NOTIFICATIONS",
+        events: events.filter((e) => e.notification_minutes != null),
       });
-    });
+    };
+    if (Notification.permission === "granted") {
+      navigator.serviceWorker.ready.then(schedule);
+    } else if (Notification.permission === "default") {
+      Notification.requestPermission().then((perm) => {
+        if (perm === "granted") navigator.serviceWorker.ready.then(schedule);
+      });
+    }
   }, [events]);
 
   const rbcEvents = [
@@ -161,10 +193,12 @@ export function CalendarPage() {
             today: "Hoje",
             month: "Mês",
             week: "Semana",
+            day: "Dia",
             agenda: "Agenda",
             date: "Data",
             time: "Hora",
             event: "Evento",
+            allDay: "Dia inteiro",
             noEventsInRange: "Nenhum evento neste período.",
             showMore: (total) => `+${total} mais`,
           }}
@@ -176,7 +210,7 @@ export function CalendarPage() {
         onClose={() => setModalOpen(false)}
         onSaved={() => {
           setModalOpen(false);
-          load();
+          refresh();
         }}
         event={editingEvent}
         defaultDate={defaultDate}
