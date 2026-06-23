@@ -134,9 +134,11 @@ export function CalendarPage() {
     },
   });
 
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-      <div className="mb-6 flex items-center justify-between">
+    <div className="mx-auto max-w-6xl px-4 py-4 sm:py-6 sm:px-6">
+      <div className="mb-4 flex items-center justify-between">
         <h1 className="font-display text-2xl font-bold text-ink dark:text-white">
           Calendário
         </h1>
@@ -146,15 +148,16 @@ export function CalendarPage() {
             setDefaultDate(format(new Date(), "yyyy-MM-dd"));
             setModalOpen(true);
           }}
-          className="flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 active:scale-95"
+          className="flex items-center gap-2 rounded-xl bg-brand-500 px-3 py-2 sm:px-4 sm:py-2.5 text-sm font-medium text-white hover:bg-brand-600 active:scale-95"
         >
-          <Plus className="h-4 w-4" /> Novo evento
+          <Plus className="h-4 w-4" />
+          <span className="hidden sm:inline">Novo evento</span>
         </button>
       </div>
 
       <div
-        className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-border-dark dark:bg-card-dark"
-        style={{ height: 600 }}
+        className="rounded-2xl border border-neutral-200 bg-white overflow-hidden shadow-sm dark:border-border-dark dark:bg-card-dark"
+        style={{ height: isMobile ? "calc(100dvh - 180px)" : 620 }}
       >
         <Calendar
           localizer={localizer}
@@ -164,6 +167,7 @@ export function CalendarPage() {
           date={date}
           onNavigate={setDate}
           eventPropGetter={eventStyleGetter}
+          views={isMobile ? [Views.MONTH, Views.AGENDA] : [Views.MONTH, Views.WEEK, Views.AGENDA]}
           onSelectEvent={(ev) => {
             if (ev.resource.type === "event") {
               setEditingEvent(ev.resource.data as CalendarEventDTO);
