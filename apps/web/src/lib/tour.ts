@@ -3,7 +3,7 @@ import "driver.js/dist/driver.css";
 
 export const TOUR_DONE_KEY = "evobuddy_tour_done";
 
-export function createTour() {
+export function createTour(onDone?: () => void) {
   return driver({
     showProgress: true,
     progressText: "{{current}} de {{total}}",
@@ -12,6 +12,7 @@ export function createTour() {
     doneBtnText: "Concluir",
     onDestroyed: () => {
       localStorage.setItem(TOUR_DONE_KEY, "true");
+      onDone?.();
     },
     steps: [
       {

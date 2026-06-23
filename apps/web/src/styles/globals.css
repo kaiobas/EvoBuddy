@@ -157,6 +157,8 @@
 .dark .rbc-timeslot-group { border-color: #2E2840; }
 .dark .rbc-agenda-date-cell, .dark .rbc-agenda-time-cell { color: #9ca3af; border-color: #2E2840; }
 
+.dark .rbc-agenda-event-cell { border-color: #2E2840; }
+
 /* driver.js overrides — alinha ao design system do EvoBuddy */
 .driver-popover {
   border-radius: 16px !important;
@@ -197,4 +199,3 @@
   font-size: 0.75rem !important;
   color: #a3a3a3 !important;
 }
-.dark .rbc-agenda-event-cell { border-color: #2E2840; }
