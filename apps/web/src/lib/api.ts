@@ -91,6 +91,7 @@ export interface TaskDTO {
   title: string;
   description: string;
   completed: boolean;
+  due_date: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -104,6 +105,7 @@ export interface UpdateTaskDTO {
   title?: string;
   description?: string;
   completed?: boolean;
+  due_date?: string | null;
 }
 
 export const tasksApi = {
@@ -199,5 +201,47 @@ export const financeApi = {
   dashboardConfig: {
     get: () => request<DashboardConfigDTO>("/api/finance/dashboard-config"),
     update: (widgets: DashboardWidget[]) => request<DashboardConfigDTO>("/api/finance/dashboard-config", { method: "PUT", body: JSON.stringify({ widgets }) }),
+  },
+};
+
+// ─── Calendar ────────────────────────────────────────────────
+
+export interface CalendarCategoryDTO {
+  id: string; user_id: string; name: string; color: string; icon: string; created_at: string;
+}
+export interface CreateCalendarCategoryDTO { name: string; color?: string; icon?: string }
+
+export interface CalendarRecurring {
+  frequency: "daily" | "weekly" | "monthly" | "yearly";
+  days_of_week?: number[];
+  end_date?: string | null;
+}
+
+export interface CalendarEventDTO {
+  id: string; user_id: string; title: string; description: string;
+  date: string; start_time: string | null; end_time: string | null;
+  all_day: boolean; category_id: string | null;
+  recurring: CalendarRecurring | null;
+  notification_minutes: number | null; created_at: string;
+}
+export interface CreateCalendarEventDTO {
+  title: string; date: string; description?: string;
+  start_time?: string | null; end_time?: string | null; all_day?: boolean;
+  category_id?: string | null; recurring?: CalendarRecurring | null;
+  notification_minutes?: number | null;
+}
+
+export const calendarApi = {
+  categories: {
+    list: () => request<CalendarCategoryDTO[]>("/api/calendar/categories"),
+    create: (data: CreateCalendarCategoryDTO) => request<CalendarCategoryDTO>("/api/calendar/categories", { method: "POST", body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<CreateCalendarCategoryDTO>) => request<CalendarCategoryDTO>(`/api/calendar/categories/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    remove: (id: string) => request<void>(`/api/calendar/categories/${id}`, { method: "DELETE" }),
+  },
+  events: {
+    list: (from: string, to: string) => request<CalendarEventDTO[]>(`/api/calendar/events?from=${from}&to=${to}`),
+    create: (data: CreateCalendarEventDTO) => request<CalendarEventDTO>("/api/calendar/events", { method: "POST", body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<CreateCalendarEventDTO>) => request<CalendarEventDTO>(`/api/calendar/events/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    remove: (id: string) => request<void>(`/api/calendar/events/${id}`, { method: "DELETE" }),
   },
 };
