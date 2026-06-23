@@ -156,4 +156,45 @@
 .dark .rbc-time-slot { border-color: #2E2840; }
 .dark .rbc-timeslot-group { border-color: #2E2840; }
 .dark .rbc-agenda-date-cell, .dark .rbc-agenda-time-cell { color: #9ca3af; border-color: #2E2840; }
+
+/* driver.js overrides — alinha ao design system do EvoBuddy */
+.driver-popover {
+  border-radius: 16px !important;
+  font-family: Inter, sans-serif !important;
+}
+
+.driver-popover-title {
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  color: #1E1B2E !important;
+}
+
+.driver-popover-description {
+  font-size: 0.875rem !important;
+  color: #525252 !important;
+}
+
+.driver-popover-next-btn,
+.driver-popover-done-btn {
+  background-color: #7C6FCD !important;
+  border: none !important;
+  border-radius: 10px !important;
+  color: #fff !important;
+}
+
+.driver-popover-next-btn:hover,
+.driver-popover-done-btn:hover {
+  background-color: #6b5ec0 !important;
+}
+
+.driver-popover-prev-btn {
+  border-radius: 10px !important;
+  color: #525252 !important;
+}
+
+.driver-popover-progress-text {
+  font-size: 0.75rem !important;
+  color: #a3a3a3 !important;
+}
 .dark .rbc-agenda-event-cell { border-color: #2E2840; }
