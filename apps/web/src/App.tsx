@@ -14,6 +14,7 @@ import { AccountsPage } from "./routes/finance.accounts";
 import { CategoriesPage } from "./routes/finance.categories";
 import { GoalsPage } from "./routes/finance.goals";
 import { RecurringPage } from "./routes/finance.recurring";
+import { CalendarPage } from "./routes/calendar";
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function App() {
             <Route path="finance/categories" element={<CategoriesPage />} />
             <Route path="finance/goals" element={<GoalsPage />} />
             <Route path="finance/recurring" element={<RecurringPage />} />
+            <Route path="calendar" element={<CalendarPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

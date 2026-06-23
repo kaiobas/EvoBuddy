@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   FileText,
   CheckSquare,
+  CalendarDays,
   Menu,
   X,
   LogOut,
@@ -23,9 +24,10 @@ import { useAuthStore } from "../../stores/authStore";
 import { useTheme } from "../../contexts/ThemeContext";
 
 const navItems = [
-  { to: "/",       label: "Dashboard", icon: LayoutDashboard },
-  { to: "/notes",  label: "Notas",     icon: FileText        },
-  { to: "/tasks",  label: "Tarefas",   icon: CheckSquare     },
+  { to: "/",          label: "Dashboard", icon: LayoutDashboard },
+  { to: "/notes",     label: "Notas",     icon: FileText        },
+  { to: "/tasks",     label: "Tarefas",   icon: CheckSquare     },
+  { to: "/calendar",  label: "Calendário", icon: CalendarDays   },
 ];
 
 const financeSubItems = [

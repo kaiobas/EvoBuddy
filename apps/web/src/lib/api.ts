@@ -99,6 +99,7 @@ export interface TaskDTO {
 export interface CreateTaskDTO {
   title: string;
   description?: string;
+  due_date?: string;
 }
 
 export interface UpdateTaskDTO {
