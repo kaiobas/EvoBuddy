@@ -17,11 +17,12 @@ router.use(authMiddleware);
 const createSchema = z.object({
   title: z.string().min(1).max(500),
   description: z.string().default(""),
+  due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
 });
 
 router.post("/", validate(createSchema), async (req, res, next) => {
   try {
-    const { title, description } = req.body;
+    const { title, description, due_date } = req.body;
     const ulid = crypto.randomUUID().replace(/-/g, "").slice(0, 26);
 
     const { data, error } = await supabaseAdmin!
@@ -31,6 +32,7 @@ router.post("/", validate(createSchema), async (req, res, next) => {
         user_id: req.user!.id,
         title,
         description,
+        due_date: due_date ?? null,
       })
       .select()
       .single();
@@ -91,6 +93,7 @@ const updateSchema = z.object({
   title: z.string().min(1).max(500).optional(),
   description: z.string().optional(),
   completed: z.boolean().optional(),
+  due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
 });
 
 router.put("/:id", validate(updateSchema), async (req, res, next) => {
