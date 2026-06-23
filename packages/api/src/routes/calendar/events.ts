@@ -39,14 +39,19 @@ function expandRecurring(event: Record<string, unknown>, from: string, to: strin
   const { frequency, end_date } = recurring;
 
   const instances: Record<string, unknown>[] = [];
-  let current = event.date as string;
   const limit = end_date && end_date < to ? end_date : to;
   let safety = 0;
 
+  // Skip ahead to the start of the requested range
+  let current = event.date as string;
+  // Advance to first occurrence >= from
+  while (current < from) {
+    current = advanceDate(current, frequency);
+    if (end_date && current > end_date) return [];
+  }
+
   while (current <= limit && safety < 500) {
-    if (current >= from) {
-      instances.push({ ...event, id: `${event.id}_${current}`, date: current });
-    }
+    instances.push({ ...event, id: `${event.id}_${current}`, date: current });
     current = advanceDate(current, frequency);
     safety++;
   }
@@ -75,7 +80,10 @@ const createSchema = z.object({
     .nullable()
     .optional(),
   notification_minutes: z.number().nullable().optional(),
-});
+}).refine(
+  (data) => data.all_day !== false || (data.start_time != null && data.start_time !== ""),
+  { message: "start_time required when all_day is false", path: ["start_time"] }
+);
 
 const updateSchema = z.object({
   title: z.string().min(1).optional(),
@@ -165,6 +173,16 @@ router.post("/", validate(createSchema), async (req, res, next) => {
       recurring,
       notification_minutes,
     } = req.body;
+
+    if (category_id) {
+      const { data: cat } = await supabaseAdmin!
+        .from("calendar_categories")
+        .select("id")
+        .eq("id", category_id)
+        .eq("user_id", req.user!.id)
+        .single();
+      if (!cat) throw new AppError("Categoria não encontrada", 404);
+    }
 
     const ulid = crypto.randomUUID().replace(/-/g, "").slice(0, 26);
 

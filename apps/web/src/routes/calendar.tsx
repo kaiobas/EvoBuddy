@@ -48,29 +48,18 @@ export function CalendarPage() {
 
   const { toast } = useToast();
 
-  const refresh = useCallback(async () => {
-    const from = format(startOfMonth(subMonths(date, 1)), "yyyy-MM-dd");
-    const to = format(endOfMonth(addMonths(date, 1)), "yyyy-MM-dd");
-    try {
-      const [evts, cats, tks] = await Promise.all([
-        calendarApi.events.list(from, to),
-        calendarApi.categories.list(),
-        tasksApi.list(),
-      ]);
-      setEvents(evts);
-      setCategories(cats);
-      setTasks(tks.filter((t) => t.due_date));
-    } catch {
-      toast("Erro ao carregar eventos.", "error");
-    }
-  }, [date, toast]);
+  const [_refreshKey, setRefreshKey] = useState(0);
+
+  const refresh = useCallback(() => {
+    setRefreshKey((k) => k + 1);
+  }, []);
 
   useEffect(() => {
     let ignore = false;
     async function load() {
-      const from = format(startOfMonth(subMonths(date, 1)), "yyyy-MM-dd");
-      const to = format(endOfMonth(addMonths(date, 1)), "yyyy-MM-dd");
       try {
+        const from = format(startOfMonth(subMonths(date, 1)), "yyyy-MM-dd");
+        const to = format(endOfMonth(addMonths(date, 1)), "yyyy-MM-dd");
         const [evts, cats, tks] = await Promise.all([
           calendarApi.events.list(from, to),
           calendarApi.categories.list(),
@@ -88,7 +77,7 @@ export function CalendarPage() {
     return () => {
       ignore = true;
     };
-  }, [date, toast]);
+  }, [date, toast, _refreshKey]);
 
   // Request notification permission (once) and schedule notifications via SW
   useEffect(() => {
