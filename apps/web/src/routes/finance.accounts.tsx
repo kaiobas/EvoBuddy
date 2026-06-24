@@ -157,7 +157,7 @@ export function AccountsPage() {
   }
 
   async function handleDisconnect(id: string) {
-    if (!confirm("Desconectar este banco? O histórico de transações será mantido.")) return;
+    if (!confirm("Desconectar este banco? As contas e transações importadas serão apagadas permanentemente.")) return;
     setDisconnectingId(id);
     try {
       await pluggyApi.disconnect(id);

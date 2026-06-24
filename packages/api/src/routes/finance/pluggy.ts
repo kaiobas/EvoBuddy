@@ -260,10 +260,29 @@ router.delete("/connections/:id", async (req, res, next) => {
 
     if (fetchError || !conn) throw new AppError("Conexão não encontrada", 404);
 
-    // Marcar contas como pluggy_disconnected (preserva histórico)
+    // Buscar contas associadas ao item
+    const { data: linkedAccounts } = await supabaseAdmin!
+      .from("accounts")
+      .select("id")
+      .eq("pluggy_item_id", conn.item_id)
+      .eq("user_id", req.user!.id);
+
+    const accountIds = (linkedAccounts ?? []).map((a) => a.id);
+
+    // Deletar transações das contas vinculadas
+    if (accountIds.length > 0) {
+      await supabaseAdmin!
+        .from("transactions")
+        .delete()
+        .in("account_id", accountIds)
+        .eq("source", "pluggy")
+        .eq("user_id", req.user!.id);
+    }
+
+    // Deletar as contas vinculadas
     await supabaseAdmin!
       .from("accounts")
-      .update({ source: "pluggy_disconnected" })
+      .delete()
       .eq("pluggy_item_id", conn.item_id)
       .eq("user_id", req.user!.id);
 
