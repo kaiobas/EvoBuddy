@@ -136,7 +136,7 @@ export type TransactionType = "income" | "expense"
 export type RecurringFrequency = "daily" | "weekly" | "monthly" | "yearly"
 export type GoalType = "savings" | "spending_limit"
 
-export interface AccountDTO { id: string; user_id: string; name: string; type: AccountType; balance: number; color: string; icon: string; created_at: string }
+export interface AccountDTO { id: string; user_id: string; name: string; type: AccountType; balance: number; color: string; icon: string; source: 'manual' | 'pluggy' | 'pluggy_disconnected'; pluggy_item_id: string | null; created_at: string }
 export interface CreateAccountDTO { name: string; type: AccountType; balance?: number; color?: string; icon?: string }
 export interface UpdateAccountDTO { name?: string; type?: AccountType; balance?: number; color?: string; icon?: string }
 
@@ -144,7 +144,7 @@ export interface CategoryDTO { id: string; user_id: string; name: string; color:
 export interface CreateCategoryDTO { name: string; color?: string; icon?: string; type?: TransactionType }
 export interface UpdateCategoryDTO { name?: string; color?: string; icon?: string; type?: TransactionType }
 
-export interface TransactionDTO { id: string; user_id: string; account_id: string | null; category_id: string | null; goal_id: string | null; recurring_id: string | null; type: TransactionType; amount: number; description: string; date: string; created_at: string }
+export interface TransactionDTO { id: string; user_id: string; account_id: string | null; category_id: string | null; goal_id: string | null; recurring_id: string | null; type: TransactionType; amount: number; description: string; date: string; source: 'manual' | 'pluggy'; pluggy_transaction_id: string | null; created_at: string }
 export interface CreateTransactionDTO { type: TransactionType; amount: number; description?: string; date?: string; account_id?: string; category_id?: string; goal_id?: string; recurring_id?: string }
 export interface UpdateTransactionDTO { type?: TransactionType; amount?: number; description?: string; date?: string; account_id?: string | null; category_id?: string | null; goal_id?: string | null }
 
@@ -205,6 +205,34 @@ export const financeApi = {
     get: () => request<DashboardConfigDTO>("/api/finance/dashboard-config"),
     update: (widgets: DashboardWidget[]) => request<DashboardConfigDTO>("/api/finance/dashboard-config", { method: "PUT", body: JSON.stringify({ widgets }) }),
   },
+};
+
+// ─── Pluggy Open Finance ─────────────────────────────────────
+
+export interface PluggyConnectionDTO {
+  id: string;
+  user_id: string;
+  item_id: string;
+  connector_name: string | null;
+  status: 'updated' | 'updating' | 'error';
+  last_synced_at: string | null;
+  created_at: string;
+}
+
+export const pluggyApi = {
+  createConnectToken: () =>
+    request<{ connectToken: string }>("/api/finance/pluggy/connect-token", { method: "POST" }),
+  connect: (data: { item_id: string; connector_name?: string }) =>
+    request<PluggyConnectionDTO>("/api/finance/pluggy/connect", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  sync: () =>
+    request<{ synced: number }>("/api/finance/pluggy/sync", { method: "POST" }),
+  listConnections: () =>
+    request<PluggyConnectionDTO[]>("/api/finance/pluggy/connections"),
+  disconnect: (id: string) =>
+    request<void>(`/api/finance/pluggy/connections/${id}`, { method: "DELETE" }),
 };
 
 // ─── Calendar ────────────────────────────────────────────────
