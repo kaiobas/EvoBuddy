@@ -157,7 +157,7 @@ router.delete("/:id", async (req, res, next) => {
       .single();
 
     if (fetchErr || !account) throw new AppError("Conta não encontrada", 404);
-    if (account.source !== "manual") throw new AppError("Conta sincronizada não pode ser removida", 403);
+    if (account.source === "pluggy") throw new AppError("Conta sincronizada não pode ser removida", 403);
 
     const { error } = await supabaseAdmin!
       .from("accounts")

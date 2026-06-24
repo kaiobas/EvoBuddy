@@ -355,8 +355,8 @@ export function AccountsPage() {
                   : "animate-card-enter hover:-translate-y-0.5 hover:shadow-md"
               }`}
             >
-              {/* Delete button — only for manual accounts */}
-              {account.source === 'manual' && (
+              {/* Delete button — manual and disconnected accounts */}
+              {account.source !== 'pluggy' && (
                 <button
                   onClick={() => handleDelete(account.id)}
                   className="absolute right-3 top-3 hidden rounded-lg p-1.5 text-neutral-400 transition hover:bg-red-50 hover:text-red-500 group-hover:flex dark:hover:bg-red-900/20"
