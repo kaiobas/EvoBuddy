@@ -257,7 +257,7 @@ export function TransactionsPage() {
                       {/* Description */}
                       <div className="flex items-center gap-1.5 min-w-0 flex-1">
                         {tx.source === 'pluggy' && (
-                          <Building2 className="h-3 w-3 flex-shrink-0 text-brand-400" title="Importado via Open Finance" />
+                          <Building2 className="h-3 w-3 flex-shrink-0 text-brand-400" />
                         )}
                         <p className="truncate text-sm font-medium text-ink dark:text-neutral-100">
                           {tx.description?.trim() || "(sem descrição)"}
