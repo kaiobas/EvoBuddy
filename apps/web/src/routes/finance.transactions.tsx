@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { Building2, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import {
   financeApi,
   type TransactionDTO,
@@ -255,9 +255,14 @@ export function TransactionsPage() {
                       />
 
                       {/* Description */}
-                      <p className="flex-1 truncate text-sm font-medium text-ink dark:text-neutral-100">
-                        {tx.description?.trim() || "(sem descrição)"}
-                      </p>
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                        {tx.source === 'pluggy' && (
+                          <Building2 className="h-3 w-3 flex-shrink-0 text-brand-400" title="Importado via Open Finance" />
+                        )}
+                        <p className="truncate text-sm font-medium text-ink dark:text-neutral-100">
+                          {tx.description?.trim() || "(sem descrição)"}
+                        </p>
+                      </div>
 
                       {/* Category name */}
                       <p className="hidden w-36 shrink-0 truncate text-center text-xs text-neutral-400 dark:text-neutral-500 sm:block">
@@ -277,13 +282,15 @@ export function TransactionsPage() {
                       </p>
 
                       {/* Delete button */}
-                      <button
-                        onClick={() => handleDelete(tx.id)}
-                        className="hidden rounded-lg p-1.5 text-neutral-400 transition hover:bg-red-50 hover:text-red-500 group-hover:flex dark:hover:bg-red-900/20"
-                        aria-label="Remover transação"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      {tx.source !== 'pluggy' && (
+                        <button
+                          onClick={() => handleDelete(tx.id)}
+                          className="hidden rounded-lg p-1.5 text-neutral-400 transition hover:bg-red-50 hover:text-red-500 group-hover:flex dark:hover:bg-red-900/20"
+                          aria-label="Remover transação"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
                   );
                 })}
