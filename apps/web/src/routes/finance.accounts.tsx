@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
-import { Plus, Trash2, X } from "lucide-react";
-import { financeApi, type AccountDTO, type AccountType } from "../lib/api";
+import { Plus, Trash2, X, Building2, Unlink, Wifi } from "lucide-react";
+import { financeApi, pluggyApi, type AccountDTO, type AccountType, type PluggyConnectionDTO } from "../lib/api";
 import { useToast } from "../contexts/ToastContext";
 
 const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
@@ -33,6 +33,9 @@ export function AccountsPage() {
   const [showForm, setShowForm] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [newlyCreatedId, setNewlyCreatedId] = useState<string | null>(null);
+  const [connections, setConnections] = useState<PluggyConnectionDTO[]>([]);
+  const [connectingBank, setConnectingBank] = useState(false);
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
 
   // Form state
   const [newName, setNewName] = useState("");
@@ -51,9 +54,19 @@ export function AccountsPage() {
     }
   }, [toast]);
 
+  const loadConnections = useCallback(async () => {
+    try {
+      const data = await pluggyApi.listConnections();
+      setConnections(data);
+    } catch {
+      // silencioso — conexões são feature extra
+    }
+  }, []);
+
   useEffect(() => {
     loadAccounts();
-  }, [loadAccounts]);
+    loadConnections();
+  }, [loadAccounts, loadConnections]);
 
   function resetForm() {
     setNewName("");
@@ -105,6 +118,56 @@ export function AccountsPage() {
     }, 200);
   }
 
+  async function handleConnectBank() {
+    setConnectingBank(true);
+    try {
+      const { connectToken } = await pluggyApi.createConnectToken();
+
+      const { PluggyConnect } = await import("pluggy-connect-sdk");
+
+      const widget = new PluggyConnect({
+        connectToken,
+        onSuccess: async ({ item }: { item: { id: string; connector: { name: string } } }) => {
+          try {
+            await pluggyApi.connect({
+              item_id: item.id,
+              connector_name: item.connector?.name,
+            });
+            toast("Banco conectado! Importando dados...", "success");
+            await Promise.all([loadAccounts(), loadConnections()]);
+          } catch {
+            toast("Erro ao salvar conexão.", "error");
+          }
+        },
+        onError: () => {
+          toast("Erro ao conectar banco.", "error");
+        },
+        onClose: () => {
+          setConnectingBank(false);
+        },
+      });
+
+      widget.init();
+    } catch {
+      toast("Erro ao iniciar conexão.", "error");
+      setConnectingBank(false);
+    }
+  }
+
+  async function handleDisconnect(id: string) {
+    if (!confirm("Desconectar este banco? O histórico de transações será mantido.")) return;
+    setDisconnectingId(id);
+    try {
+      await pluggyApi.disconnect(id);
+      toast("Banco desconectado.", "success");
+      await Promise.all([loadAccounts(), loadConnections()]);
+    } catch {
+      toast("Erro ao desconectar banco.", "error");
+    } finally {
+      setDisconnectingId(null);
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-12">
@@ -139,6 +202,65 @@ export function AccountsPage() {
             </>
           )}
         </button>
+      </div>
+
+      {/* Bancos conectados via Open Finance */}
+      <div className="mb-8">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-display text-base font-bold text-ink dark:text-neutral-100 flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-brand-500" />
+            Open Finance
+          </h2>
+          <button
+            onClick={handleConnectBank}
+            disabled={connectingBank}
+            className="flex items-center gap-2 rounded-xl border border-brand-500 px-3 py-2 text-sm font-medium text-brand-600 transition hover:bg-brand-50 active:scale-95 disabled:opacity-60 dark:text-brand-400 dark:hover:bg-brand-900/20"
+          >
+            <Wifi className="h-4 w-4" />
+            {connectingBank ? "Aguardando..." : "Conectar banco"}
+          </button>
+        </div>
+
+        {connections.length === 0 ? (
+          <p className="text-sm text-neutral-400 dark:text-neutral-500">
+            Nenhum banco conectado. Clique em "Conectar banco" para importar dados via Open Finance.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {connections.map((conn) => (
+              <div
+                key={conn.id}
+                className="flex items-center justify-between rounded-xl border border-neutral-200 bg-white px-4 py-3 dark:border-border-dark dark:bg-card-dark"
+              >
+                <div className="flex items-center gap-3">
+                  <Building2 className="h-5 w-5 text-brand-500" />
+                  <div>
+                    <p className="text-sm font-medium text-ink dark:text-neutral-100">
+                      {conn.connector_name ?? "Banco"}
+                    </p>
+                    <p className="text-xs text-neutral-400">
+                      {conn.status === "error" ? (
+                        <span className="text-red-500">Erro na sincronização</span>
+                      ) : conn.last_synced_at ? (
+                        <>Sincronizado {new Date(conn.last_synced_at).toLocaleDateString("pt-BR")}</>
+                      ) : (
+                        "Sincronizando..."
+                      )}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDisconnect(conn.id)}
+                  disabled={disconnectingId === conn.id}
+                  className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-neutral-500 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 disabled:opacity-50"
+                >
+                  <Unlink className="h-3.5 w-3.5" />
+                  Desconectar
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Create form */}
@@ -231,14 +353,16 @@ export function AccountsPage() {
                   : "animate-card-enter hover:-translate-y-0.5 hover:shadow-md"
               }`}
             >
-              {/* Delete button */}
-              <button
-                onClick={() => handleDelete(account.id)}
-                className="absolute right-3 top-3 hidden rounded-lg p-1.5 text-neutral-400 transition hover:bg-red-50 hover:text-red-500 group-hover:flex dark:hover:bg-red-900/20"
-                aria-label="Remover conta"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+              {/* Delete button — only for manual accounts */}
+              {account.source === 'manual' && (
+                <button
+                  onClick={() => handleDelete(account.id)}
+                  className="absolute right-3 top-3 hidden rounded-lg p-1.5 text-neutral-400 transition hover:bg-red-50 hover:text-red-500 group-hover:flex dark:hover:bg-red-900/20"
+                  aria-label="Remover conta"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
 
               {/* Color dot + name */}
               <div className="mb-3 flex items-center gap-3">
@@ -255,6 +379,14 @@ export function AccountsPage() {
               <span className="mb-3 inline-block rounded-lg bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">
                 {ACCOUNT_TYPE_LABELS[account.type] ?? account.type}
               </span>
+
+              {/* Pluggy sync badge */}
+              {account.source === 'pluggy' && (
+                <span className="mb-1 flex items-center gap-1 text-xs font-medium text-brand-600 dark:text-brand-400">
+                  <Building2 className="h-3 w-3" />
+                  Sincronizado
+                </span>
+              )}
 
               {/* Balance */}
               <p className="text-lg font-bold text-ink dark:text-neutral-100">
