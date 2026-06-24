@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import {
   financeApi,
+  pluggyApi,
   type AccountDTO,
   type TransactionDTO,
   type GoalDTO,
@@ -628,6 +629,10 @@ export function FinanceDashboard() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    pluggyApi.sync().catch(() => {});
+  }, []);
 
   const widgets: DashboardWidget[] = config?.widgets?.length
     ? config.widgets
