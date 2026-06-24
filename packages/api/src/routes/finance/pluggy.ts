@@ -9,7 +9,6 @@ import {
   getConnectToken,
   getPluggyAccounts,
   getPluggyTransactions,
-  type PluggyAccount,
 } from "../../lib/pluggyClient.js";
 
 const router = Router();
