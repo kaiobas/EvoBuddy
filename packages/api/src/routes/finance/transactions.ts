@@ -234,6 +234,16 @@ router.get("/:id", async (req, res, next) => {
  */
 router.put("/:id", validate(updateSchema), async (req, res, next) => {
   try {
+    const { data: existing, error: fetchErr } = await supabaseAdmin!
+      .from("transactions")
+      .select("source")
+      .eq("id", req.params.id)
+      .eq("user_id", req.user!.id)
+      .single();
+
+    if (fetchErr || !existing) throw new AppError("Transação não encontrada", 404);
+    if (existing.source === "pluggy") throw new AppError("Transação importada não pode ser editada", 403);
+
     const updates: Record<string, unknown> = {
       ...req.body,
       updated_at: new Date().toISOString(),
@@ -262,6 +272,16 @@ router.put("/:id", validate(updateSchema), async (req, res, next) => {
  */
 router.delete("/:id", async (req, res, next) => {
   try {
+    const { data: txn, error: fetchErr } = await supabaseAdmin!
+      .from("transactions")
+      .select("source")
+      .eq("id", req.params.id)
+      .eq("user_id", req.user!.id)
+      .single();
+
+    if (fetchErr || !txn) throw new AppError("Transação não encontrada", 404);
+    if (txn.source === "pluggy") throw new AppError("Transação importada não pode ser removida", 403);
+
     const { error } = await supabaseAdmin!
       .from("transactions")
       .delete()

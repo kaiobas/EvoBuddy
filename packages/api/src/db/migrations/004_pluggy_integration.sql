@@ -25,12 +25,15 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_pluggy_transaction_id
 CREATE TABLE IF NOT EXISTS pluggy_connections (
   id             TEXT PRIMARY KEY,
   user_id        UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  item_id        TEXT NOT NULL UNIQUE,
+  item_id        TEXT NOT NULL,
   connector_name TEXT,
   status         TEXT NOT NULL DEFAULT 'updated',
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
   last_synced_at TIMESTAMPTZ
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_pluggy_connections_user_item
+  ON pluggy_connections(user_id, item_id);
 
 CREATE INDEX IF NOT EXISTS idx_pluggy_connections_user_id
   ON pluggy_connections(user_id);

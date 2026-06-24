@@ -29,6 +29,8 @@ services:
       - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
       - GOOGLE_TOKEN_ENCRYPTION_KEY=${GOOGLE_TOKEN_ENCRYPTION_KEY}
       - FRONTEND_URL=${FRONTEND_URL:-https://bitsautomacoes.site}
+      - PLUGGY_CLIENT_ID=${PLUGGY_CLIENT_ID}
+      - PLUGGY_CLIENT_SECRET=${PLUGGY_CLIENT_SECRET}
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3001/api/health"]
       interval: 30s

@@ -141,6 +141,7 @@ export function AccountsPage() {
           }
         },
         onError: () => {
+          setConnectingBank(false);
           toast("Erro ao conectar banco.", "error");
         },
         onClose: () => {

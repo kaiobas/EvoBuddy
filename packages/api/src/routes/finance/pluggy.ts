@@ -152,13 +152,16 @@ router.post("/connect", validate(connectSchema), async (req, res, next) => {
 
     const { data, error } = await supabaseAdmin!
       .from("pluggy_connections")
-      .insert({
-        id,
-        user_id: req.user!.id,
-        item_id,
-        connector_name: connector_name ?? null,
-        status: "updating",
-      })
+      .upsert(
+        {
+          id,
+          user_id: req.user!.id,
+          item_id,
+          connector_name: connector_name ?? null,
+          status: "updating",
+        },
+        { onConflict: "user_id,item_id", ignoreDuplicates: false }
+      )
       .select()
       .single();
 
