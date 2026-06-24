@@ -20,6 +20,7 @@
     "date-fns": "^4.4.0",
     "driver.js": "^1.4.0",
     "lucide-react": "^1.21.0",
+    "pluggy-connect-sdk": "^2.13.0",
     "react": "^19.1.0",
     "react-big-calendar": "^1.20.0",
     "react-dom": "^19.1.0",
