@@ -51,6 +51,7 @@ const migrations: Migration[] = [
   { version: 1, name: "Create notes table", file: "001_create_notes.sql" },
   { version: 2, name: "Create tasks table", file: "002_create_tasks.sql" },
   { version: 3, name: "Google Calendar sync", file: "003_google_calendar_sync.sql" },
+  { version: 4, name: "Pluggy Open Finance integration", file: "004_pluggy_integration.sql" },
 ];
 
 async function main() {
