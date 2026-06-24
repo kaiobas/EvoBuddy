@@ -128,6 +128,7 @@ export function AccountsPage() {
       const widget = new PluggyConnect({
         connectToken,
         onSuccess: async ({ item }: { item: { id: string; connector: { name: string } } }) => {
+          setConnectingBank(false);
           try {
             await pluggyApi.connect({
               item_id: item.id,
