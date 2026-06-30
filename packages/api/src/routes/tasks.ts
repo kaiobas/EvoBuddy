@@ -18,12 +18,17 @@ const createSchema = z.object({
   title: z.string().min(1).max(500),
   description: z.string().default(""),
   due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  starts_at: z.string().datetime().nullable().optional(),
+  ends_at: z.string().datetime().nullable().optional(),
 });
 
 router.post("/", validate(createSchema), async (req, res, next) => {
   try {
-    const { title, description, due_date } = req.body;
+    const { title, description, due_date, starts_at, ends_at } = req.body;
     const ulid = crypto.randomUUID().replace(/-/g, "").slice(0, 26);
+
+    const effectiveDueDate =
+      due_date ?? (ends_at ? ends_at.slice(0, 10) : null);
 
     const { data, error } = await supabaseAdmin!
       .from("tasks")
@@ -32,7 +37,9 @@ router.post("/", validate(createSchema), async (req, res, next) => {
         user_id: req.user!.id,
         title,
         description,
-        due_date: due_date ?? null,
+        due_date: effectiveDueDate,
+        starts_at: starts_at ?? null,
+        ends_at: ends_at ?? null,
       })
       .select()
       .single();
@@ -94,14 +101,26 @@ const updateSchema = z.object({
   description: z.string().optional(),
   completed: z.boolean().optional(),
   due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  starts_at: z.string().datetime().nullable().optional(),
+  ends_at: z.string().datetime().nullable().optional(),
 });
 
 router.put("/:id", validate(updateSchema), async (req, res, next) => {
   try {
+    const { ends_at, due_date, ...rest } = req.body;
+    const effectiveDueDate =
+      due_date !== undefined
+        ? due_date
+        : ends_at !== undefined && ends_at !== null
+        ? ends_at.slice(0, 10)
+        : undefined;
+
     const updates: Record<string, unknown> = {
-      ...req.body,
+      ...rest,
       updated_at: new Date().toISOString(),
     };
+    if (ends_at !== undefined) updates.ends_at = ends_at;
+    if (effectiveDueDate !== undefined) updates.due_date = effectiveDueDate;
 
     const { data, error } = await supabaseAdmin!
       .from("tasks")
