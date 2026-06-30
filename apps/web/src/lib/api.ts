@@ -94,6 +94,9 @@ export interface TaskDTO {
   description: string;
   completed: boolean;
   due_date: string | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  calendar_event_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -102,6 +105,8 @@ export interface CreateTaskDTO {
   title: string;
   description?: string;
   due_date?: string;
+  starts_at?: string;
+  ends_at?: string;
 }
 
 export interface UpdateTaskDTO {
@@ -109,6 +114,8 @@ export interface UpdateTaskDTO {
   description?: string;
   completed?: boolean;
   due_date?: string | null;
+  starts_at?: string | null;
+  ends_at?: string | null;
 }
 
 export const tasksApi = {
@@ -260,6 +267,7 @@ export interface CreateCalendarEventDTO {
   start_time?: string | null; end_time?: string | null; all_day?: boolean;
   category_id?: string | null; recurring?: CalendarRecurring | null;
   notification_minutes?: number | null;
+  create_task?: boolean;
 }
 
 export const calendarApi = {
