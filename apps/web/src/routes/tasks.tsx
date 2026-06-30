@@ -185,8 +185,8 @@ export function TasksPage() {
     try {
       await tasksApi.create({
         title: newTitle,
-        starts_at: newStartsAt || undefined,
-        ends_at: newEndsAt || undefined,
+        starts_at: newStartsAt ? new Date(newStartsAt).toISOString() : undefined,
+        ends_at: newEndsAt ? new Date(newEndsAt).toISOString() : undefined,
       });
       setNewTitle("");
       setNewStartsAt("");
