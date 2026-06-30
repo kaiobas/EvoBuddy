@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
-import { Plus, Trash2, List, Columns } from "lucide-react";
+import { Plus, Trash2, List, Columns, Clock } from "lucide-react";
 import { tasksApi, type TaskDTO } from "../lib/api";
+import { TaskTimerBar } from "../components/features/tasks/TaskTimerBar";
 import { useToast } from "../contexts/ToastContext";
 import {
   DndContext,
@@ -92,6 +93,9 @@ function DraggableCard({
             {task.description}
           </p>
         )}
+        {!task.completed && task.starts_at && task.ends_at && (
+          <TaskTimerBar startsAt={task.starts_at} endsAt={task.ends_at} />
+        )}
       </div>
       <button
         onClick={(e) => { e.stopPropagation(); onDelete(task.id); }}
@@ -147,7 +151,9 @@ export function TasksPage() {
   const [tasks, setTasks] = useState<TaskDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [newTitle, setNewTitle] = useState("");
-  const [newDueDate, setNewDueDate] = useState("");
+  const [newStartsAt, setNewStartsAt] = useState("");
+  const [newEndsAt, setNewEndsAt] = useState("");
+  const [showPeriod, setShowPeriod] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [view, setView] = useState<View>(
@@ -177,9 +183,15 @@ export function TasksPage() {
     e.preventDefault();
     if (!newTitle.trim()) return;
     try {
-      await tasksApi.create({ title: newTitle, due_date: newDueDate || undefined });
+      await tasksApi.create({
+        title: newTitle,
+        starts_at: newStartsAt || undefined,
+        ends_at: newEndsAt || undefined,
+      });
       setNewTitle("");
-      setNewDueDate("");
+      setNewStartsAt("");
+      setNewEndsAt("");
+      setShowPeriod(false);
       toast("Tarefa criada.", "success");
       await loadTasks();
     } catch {
@@ -328,13 +340,43 @@ export function TasksPage() {
             <span className="hidden sm:inline">Adicionar</span>
           </button>
         </div>
-        <input
-          type="date"
-          value={newDueDate}
-          onChange={(e) => setNewDueDate(e.target.value)}
-          className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-2.5 text-sm text-ink outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100 dark:border-border-dark dark:bg-surface-dark dark:text-neutral-100"
-          aria-label="Prazo (opcional)"
-        />
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowPeriod((v) => !v)}
+            className="flex items-center gap-1.5 text-xs font-medium text-neutral-400 transition hover:text-brand-500 dark:text-neutral-500 dark:hover:text-brand-400 min-h-0 min-w-0"
+          >
+            <Clock className="h-3.5 w-3.5" />
+            {showPeriod ? "Remover período" : "Definir período"}
+          </button>
+
+          {showPeriod && (
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-neutral-400 dark:text-neutral-500">
+                  Início
+                </label>
+                <input
+                  type="datetime-local"
+                  value={newStartsAt}
+                  onChange={(e) => setNewStartsAt(e.target.value)}
+                  className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-ink outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100 dark:border-border-dark dark:bg-surface-dark dark:text-neutral-100"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-neutral-400 dark:text-neutral-500">
+                  Fim
+                </label>
+                <input
+                  type="datetime-local"
+                  value={newEndsAt}
+                  onChange={(e) => setNewEndsAt(e.target.value)}
+                  className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-ink outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100 dark:border-border-dark dark:bg-surface-dark dark:text-neutral-100"
+                />
+              </div>
+            </div>
+          )}
+        </div>
       </form>
 
       {/* Filtros — somente na visão lista */}
@@ -432,6 +474,11 @@ export function TasksPage() {
                     {task.description && (
                       <span className="text-xs text-neutral-400 dark:text-neutral-500 mt-0.5 block truncate max-w-[200px]">
                         {task.description}
+                      </span>
+                    )}
+                    {!task.completed && task.starts_at && task.ends_at && (
+                      <span className="block">
+                        <TaskTimerBar startsAt={task.starts_at} endsAt={task.ends_at} />
                       </span>
                     )}
                   </span>
