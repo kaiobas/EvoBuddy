@@ -51,6 +51,7 @@ export function EventModal({
   const [description, setDescription] = useState(event?.description ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [createTask, setCreateTask] = useState(!event);
 
   // Re-sync form fields when the event prop changes (e.g. switching between events)
   useEffect(() => {
@@ -63,6 +64,7 @@ export function EventModal({
     setFrequency(event?.recurring?.frequency ?? "none");
     setNotifMinutes(event?.notification_minutes ?? null);
     setDescription(event?.description ?? "");
+    setCreateTask(!event);
   }, [event, defaultDate, open]);
 
   // Close on Escape
@@ -102,7 +104,7 @@ export function EventModal({
         await calendarApi.events.update(event.id, payload);
         toast("Evento atualizado.", "success");
       } else {
-        await calendarApi.events.create(payload);
+        await calendarApi.events.create({ ...payload, create_task: createTask });
         toast("Evento criado.", "success");
       }
       onSaved();
@@ -311,6 +313,30 @@ export function EventModal({
               aria-label="Descrição"
             />
           </div>
+
+          {/* Adicionar como tarefa — só na criação */}
+          {!event && (
+            <div className="flex items-center justify-between rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-2.5 dark:border-border-dark dark:bg-neutral-800">
+              <span className="text-sm text-ink dark:text-white">Adicionar como tarefa</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={createTask}
+                onClick={() => setCreateTask((v) => !v)}
+                style={{ minWidth: "2.75rem" }}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2 min-h-0 ${
+                  createTask ? "bg-brand-500" : "bg-neutral-300 dark:bg-neutral-600"
+                }`}
+              >
+                <span
+                  aria-hidden="true"
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    createTask ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex flex-col gap-2 pt-1">
