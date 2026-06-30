@@ -80,10 +80,15 @@ const createSchema = z.object({
     .nullable()
     .optional(),
   notification_minutes: z.number().nullable().optional(),
+  create_task: z.boolean().optional(),
 }).refine(
   (data) => data.all_day !== false || (data.start_time != null && data.start_time !== ""),
   { message: "start_time required when all_day is false", path: ["start_time"] }
 );
+
+function makeUlid(): string {
+  return crypto.randomUUID().replace(/-/g, "").slice(0, 26);
+}
 
 const updateSchema = z.object({
   title: z.string().min(1).optional(),
@@ -205,6 +210,26 @@ router.post("/", validate(createSchema), async (req, res, next) => {
       .single();
 
     if (error) throw new AppError(error.message, 500);
+
+    if (req.body.create_task && data) {
+      const evt = data as Record<string, unknown>;
+      const taskPayload: Record<string, unknown> = {
+        id: makeUlid(),
+        user_id: req.user!.id,
+        title: evt.title,
+        description: "",
+        calendar_event_id: evt.id,
+        due_date: evt.date,
+      };
+
+      if (!evt.all_day && evt.start_time && evt.end_time) {
+        taskPayload.starts_at = `${evt.date}T${evt.start_time}:00`;
+        taskPayload.ends_at   = `${evt.date}T${evt.end_time}:00`;
+      }
+
+      await supabaseAdmin!.from("tasks").insert(taskPayload);
+    }
+
     res.status(201).json(data);
   } catch (err) {
     next(err);
@@ -234,6 +259,45 @@ router.put("/:id", validate(updateSchema), async (req, res, next) => {
     if (error || !data) {
       throw new AppError("Evento não encontrado", 404);
     }
+
+    const { data: linkedTask } = await supabaseAdmin!
+      .from("tasks")
+      .select("id")
+      .eq("calendar_event_id", req.params.id)
+      .eq("user_id", req.user!.id)
+      .maybeSingle();
+
+    if (linkedTask) {
+      const evt = data as Record<string, unknown>;
+      const taskUpdates: Record<string, unknown> = {
+        updated_at: new Date().toISOString(),
+      };
+
+      if (req.body.title !== undefined) taskUpdates.title = evt.title;
+
+      if (
+        req.body.date !== undefined ||
+        req.body.start_time !== undefined ||
+        req.body.end_time !== undefined ||
+        req.body.all_day !== undefined
+      ) {
+        taskUpdates.due_date = evt.date;
+        if (!evt.all_day && evt.start_time && evt.end_time) {
+          taskUpdates.starts_at = `${evt.date}T${evt.start_time}:00`;
+          taskUpdates.ends_at   = `${evt.date}T${evt.end_time}:00`;
+        } else {
+          taskUpdates.starts_at = null;
+          taskUpdates.ends_at   = null;
+        }
+      }
+
+      await supabaseAdmin!
+        .from("tasks")
+        .update(taskUpdates)
+        .eq("id", (linkedTask as Record<string, unknown>).id)
+        .eq("user_id", req.user!.id);
+    }
+
     res.json(data);
   } catch (err) {
     next(err);
