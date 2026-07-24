@@ -13,7 +13,21 @@ export function NotesPage() {
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [isCreating, setIsCreating] = useState(false);
+
+  function isLong(content: string | null | undefined) {
+    if (!content) return false;
+    return content.length > 200 || content.split("\n").length > 3;
+  }
+
+  function toggleExpand(id: string) {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
 
   const loadNotes = useCallback(async () => {
     try {
@@ -174,9 +188,22 @@ export function NotesPage() {
                   <p className="mb-1 font-medium text-ink dark:text-neutral-100 truncate">
                     {note.title || "Sem título"}
                   </p>
-                  <p className="mb-4 text-sm text-neutral-500 dark:text-neutral-400 line-clamp-3">
+                  <p
+                    className={`mb-1 whitespace-pre-wrap text-sm text-neutral-500 dark:text-neutral-400 ${
+                      expandedIds.has(note.id) ? "" : "line-clamp-3"
+                    }`}
+                  >
                     {note.content || "Sem conteúdo"}
                   </p>
+                  {isLong(note.content) && (
+                    <button
+                      onClick={() => toggleExpand(note.id)}
+                      className="mb-3 text-xs font-medium text-brand-500 hover:text-brand-600 dark:text-brand-400"
+                    >
+                      {expandedIds.has(note.id) ? "Mostrar menos" : "Ler mais"}
+                    </button>
+                  )}
+                  {!isLong(note.content) && <div className="mb-3" />}
                   <div className="flex gap-2">
                     <button
                       onClick={() => startEdit(note)}

@@ -7,13 +7,13 @@ BASE commit: 93d9c43
 ## Status de Execução
 
 - [x] Task 1: Migration do banco de dados — COMPLETA (commit 6aecffe)
-- [ ] Task 2: API — Atualizar rotas de tasks
-- [ ] Task 3: API — Calendar events: criar e sincronizar tarefa vinculada
-- [ ] Task 4: Frontend — Atualizar tipos em api.ts
-- [ ] Task 5: Componente TaskTimerBar
-- [ ] Task 6: tasks.tsx — formulário com período e timer nos cards
-- [ ] Task 7: EventModal — toggle "Adicionar como tarefa"
-- [ ] Task 8: Deploy para produção
+- [x] Task 2: API — Atualizar rotas de tasks — COMPLETA (commit 6993d12)
+- [x] Task 3: API — Calendar events — COMPLETA (commit 992b9a6)
+- [x] Task 4: Frontend — Atualizar tipos em api.ts — COMPLETA (commit 7186f09)
+- [x] Task 5: Componente TaskTimerBar — COMPLETA (commit 81484ee)
+- [x] Task 6: tasks.tsx — formulário com período e timer nos cards — COMPLETA (commit fef13f8)
+- [x] Task 7: EventModal — toggle "Adicionar como tarefa" — COMPLETA (commit 7ae1a2b)
+- [x] Task 8: Deploy para produção — COMPLETA
 
 ## PRÓXIMO PASSO OBRIGATÓRIO (antes de continuar)
 

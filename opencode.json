@@ -1,6 +1,8 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "instructions": ["CLAUDE.md"],
+  "instructions": [
+    "CLAUDE.md"
+  ],
   "default_agent": "orchestrator",
   "agent": {
     "orchestrator": {
@@ -38,27 +40,31 @@
       "mode": "subagent",
       "color": "#22c55e",
       "prompt": "Você é o especialista em Database do EvoBuddy.\n\n## Responsabilidades\n\n- Criar e gerenciar tabelas PostgreSQL no Supabase\n- Configurar Row Level Security (RLS) policies\n- Criar índices e constraints\n- Escrever migrations SQL (arquivos .sql versionados)\n- Configurar Auth providers (Magic Link, Google, GitHub)\n- Orientar sobre padrões de query (Supabase Client)\n- Garantir que o schema esteja alinhado com os schemas Zod do @evobuddy/shared\n\n## Stack\n\n- PostgreSQL 15+ (Supabase)\n- Supabase Auth + RLS\n- Supabase JS Client (frontend) + Admin Client (backend)\n- SQL migrations versionadas\n\n## Skill\n\nConsulte a skill .opencode/skills/database/SKILL.md para templates, convenções e exemplos completos.\n\n## Arquivos Relevantes\n\n- packages/api/src/db/migrations/ — SQL migrations versionadas\n- packages/shared/src/modules/*/schema.ts — schemas Zod que devem espelhar o banco\n- Dashboard do Supabase para gerenciar tabelas, auth e RLS\n\n## Regras\n\n- Tabelas em snake_case plural\n- PK como TEXT (ULID gerado no frontend)\n- FK com ON DELETE CASCADE\n- RLS obrigatório em TODAS as tabelas\n- Sem soft-delete (DELETE real)\n- Timestamps com TIMESTAMPTZ e DEFAULT now()"
-  },
-  "permission": {
-    "read": "allow",
-    "edit": "allow",
-    "bash": "allow"
-  },
-  "skills": {
-    "paths": [
-      ".opencode/skills/rag-ops",
-      ".opencode/skills/database"
-    ]
-  },
-  "mcp": {
-    "evobuddy-rag": {
-      "type": "local",
-      "command": ["node", "packages/dev-rag/dist/mcp/server.js"],
-      "enabled": true,
-      "env": {
-        "DEV_RAG_DB_URL": "file:./packages/dev-rag/data/dev-rag.db",
-        "OLLAMA_URL": "http://localhost:11434",
-        "EMBEDDING_MODEL": "nomic-embed-text"
+    },
+    "permission": {
+      "read": "allow",
+      "edit": "allow",
+      "bash": "allow"
+    },
+    "skills": {
+      "paths": [
+        ".opencode/skills/rag-ops",
+        ".opencode/skills/database"
+      ]
+    },
+    "mcp": {
+      "evobuddy-rag": {
+        "type": "local",
+        "command": [
+          "node",
+          "packages/dev-rag/dist/mcp/server.js"
+        ],
+        "enabled": true,
+        "env": {
+          "DEV_RAG_DB_URL": "file:./packages/dev-rag/data/dev-rag.db",
+          "OLLAMA_URL": "http://localhost:11434",
+          "EMBEDDING_MODEL": "nomic-embed-text"
+        }
       }
     }
   }

@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(*)",
+      "Read(*)",
+      "Edit(*)",
+      "Write(*)",
+      "mcp__evobuddy-rag__rag_query",
+      "mcp__evobuddy-rag__rag_augment",
+      "mcp__evobuddy-rag__rag_ingest",
+      "mcp__evobuddy-rag__rag_sessions",
+      "mcp__evobuddy-rag__rag_ingest_session",
+      "mcp__evobuddy-rag__rag_add_messages",
+      "mcp__evobuddy-rag__rag_finish_task"
+    ]
+  },
+  "mcpServers": {
+    "evobuddy-rag": {
+      "command": "node",
+      "args": ["/Users/kaioba/Documents/GitHub/EvoBuddy/packages/dev-rag/dist/mcp/server.js"],
+      "cwd": "/Users/kaioba/Documents/GitHub/EvoBuddy",
+      "env": {
+        "DEV_RAG_DB_URL": "file:/Users/kaioba/Documents/GitHub/EvoBuddy/packages/dev-rag/data/dev-rag.db",
+        "OLLAMA_URL": "http://localhost:11434",
+        "EMBEDDING_MODEL": "nomic-embed-text"
+      }
+    }
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /Users/kaioba/Documents/GitHub/EvoBuddy && git diff --quiet HEAD 2>/dev/null && git diff --cached --quiet 2>/dev/null || npx tsx packages/dev-rag/src/cli.ts finish-task 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}
